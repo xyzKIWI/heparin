@@ -7,8 +7,9 @@
 //   [頁面濃度] index.html 藥袋濃度提示（第 100 行）
 //   [頁面欄位] index.html 三個輸入欄位的 min／max／step（第 114–122 行）
 //   [README]   README.md「計算規則」段落
-//   [原表測試] heparin.test.mjs 既有測試，宣稱重現原始照片 40／50／60／70 kg 表列值
-//              （原始照片不在 repo 內，無法獨立核對照片本身）
+//   [原表照片] 高醫 KMUH MICU Heparin Infusion Protocol 原表照片（Kiwi 2026-11-02 提供，未放入 repo）；
+//              本檔第 0 節逐格轉錄 40／50／60／70 kg 的調整列
+//   [原表測試] heparin.test.mjs 既有測試的 40／50／60／70 kg 案例，已與 [原表照片] 核對一致
 //   [2025 指引] 2025 ACC/AHA/ACEP/NAEMSP/SCAI ACS Guideline, Section 4.4 Parenteral
 //              Anticoagulation 表格（https://www.ahajournals.org/doi/10.1161/CIR.0000000000001309）
 // 找不到可驗證出處的項目，註解寫「未找到可驗證範例」，測試只鎖住目前行為以防回歸。
@@ -107,6 +108,61 @@ function assertMatchesExpected(indication, weightKg, aptt, rate, band = expected
 
 const decode = (s) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
 const normLabel = (s) => s.replace(/\s|秒/g, "");
+
+// ===========================================================================
+describe("0. 高醫原表照片逐格比對", () => {
+  // 出處：[原表照片]「高醫內科加護病房 靜脈注射抗凝血藥物劑量調整指引 KMUH MICU Heparin Infusion Protocol」
+  //       A. Heparin for Thromboembolism、B. Heparin for ACS & Stroke（Kiwi 於 2026-11-02 提供，照片未放入 repo）
+  // 以下逐格轉錄 40／50／60／70 kg 的 aPTT 調整列（不含 Initial dosing 列，本工具不計算初始劑量）。
+  // 每格：[bolus U, mL/h 增減（負為 ↓）, 暫停分鐘, 是否「並請告知醫師」]
+  const PHOTO = {
+    vte: [
+      // aPTT 代表值, 列名, 40 kg, 50 kg, 60 kg, 70 kg
+      [30, "< 35 s", [3000, 4, 0, false], [4000, 5, 0, false], [5000, 6, 0, false], [5000, 7, 0, false]],
+      [40, "35 ~ 49 s", [1500, 2, 0, false], [2000, 2.5, 0, false], [2500, 3, 0, false], [3000, 3.5, 0, false]],
+      [55, "50 ~ 59 s", [0, 2, 0, false], [0, 2.5, 0, false], [0, 3, 0, false], [0, 3.5, 0, false]],
+      [70, "60 ~ 79 s", [0, 0, 0, false], [0, 0, 0, false], [0, 0, 0, false], [0, 0, 0, false]],
+      [85, "80 ~ 89 s", [0, -2, 0, false], [0, -2.5, 0, false], [0, -3, 0, false], [0, -3.5, 0, false]],
+      [100, "90 ~ 120 s", [0, -2, 30, false], [0, -2.5, 30, false], [0, -3, 30, false], [0, -3.5, 30, false]],
+      [130, "> 120 s", [0, -3, 60, true], [0, -4, 60, true], [0, -4.5, 60, true], [0, -5.5, 60, true]],
+    ],
+    acs: [
+      [30, "< 40 s", [2000, 2, 0, false], [2500, 2.5, 0, false], [3000, 3, 0, false], [3500, 3.5, 0, false]],
+      [45, "40 ~ 49 s", [0, 2, 0, false], [0, 2.5, 0, false], [0, 3, 0, false], [0, 3.5, 0, false]],
+      [60, "50 ~ 75 s", [0, 0, 0, false], [0, 0, 0, false], [0, 0, 0, false], [0, 0, 0, false]],
+      [80, "76 ~ 85 s", [0, -2, 0, false], [0, -2.5, 0, false], [0, -3, 0, false], [0, -3.5, 0, false]],
+      [90, "86 ~ 100 s", [0, -2, 30, false], [0, -2.5, 30, false], [0, -3, 30, false], [0, -3.5, 30, false]],
+      [110, "> 100 s", [0, -3, 60, true], [0, -4, 60, true], [0, -4.5, 60, true], [0, -5.5, 60, true]],
+    ],
+  };
+
+  for (const [indication, rows] of Object.entries(PHOTO)) {
+    for (const [aptt, rowLabel, ...cells] of rows) {
+      test(`原表 ${indication === "vte" ? "Thromboembolism" : "ACS & Stroke"}「${rowLabel}」40／50／60／70 kg`, () => {
+        cells.forEach(([bolus, delta, hold, notify], i) => {
+          const kg = [40, 50, 60, 70][i];
+          const out = calc(indication, kg, aptt, 30);
+          assert.deepEqual(
+            [out.bolusUnits, out.rateDeltaMlHour, out.holdMinutes, out.notifyPhysician],
+            [bolus, delta, hold, notify],
+            `${kg} kg`,
+          );
+          assert.equal(normLabel(out.bandLabel), normLabel(rowLabel.replace(" ~ ", "–").replace(" s", "")), `${kg} kg 區間`);
+        });
+      });
+    }
+  }
+
+  // 出處：[原表照片] 兩張表的「泡法：heparin 20000U in N/S 500ml → 40U/ml」
+  test("原表濃度 20000 U / 500 mL = 40 U/mL", () => {
+    assert.equal(20000 / 500, HEPARIN_CONCENTRATION);
+  });
+
+  // 出處：[原表照片] 頁尾「f/u APTT q8h（若連續兩次 APTT 均在治療範圍內，可以改 QD 監測）；f/u Hb and Plt regularly (initially, QD)」
+  test("原表重抽 aPTT q8h、連續兩次在範圍內改 QD，與頁尾文字一致", () => {
+    assert.match(HTML, /原表為 q8h、連續兩次治療範圍可改 QD，並追蹤 Hb 與 platelet/);
+  });
+});
 
 // ===========================================================================
 describe("1. 程式規則與頁面文字一致", () => {
