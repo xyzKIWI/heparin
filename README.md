@@ -30,8 +30,13 @@
 ## 驗證
 
 ```powershell
-node --test .\heparin.test.mjs
+node --test
 ```
+
+- `heparin.test.mjs`：原表 40／50／60／70 kg 案例
+- `heparin.verify.test.mjs`：逐條對照頁面規則表、所有切點、體重邊界、bolus 上限、單位換算與無效輸入
+- `heparin.page.test.mjs`：用瀏覽器實際操作頁面（需要 Playwright；本機沒有時自動略過，GitHub Actions 會安裝後執行）
+- 驗算結果與待確認事項見 [TEST_REPORT.md](TEST_REPORT.md)
 
 ## 更新方法
 
