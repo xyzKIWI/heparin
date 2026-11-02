@@ -1,6 +1,12 @@
 export const HEPARIN_CONCENTRATION = 40;
 export const SOURCE_WEIGHTS_KG = [40, 50, 60, 70];
 
+// 下次 aPTT：急診 q6h–q8h（Kiwi 2026-11-02）；原表 ICU 為 q8h，連續兩次在治療範圍內可改 QD
+export const RECHECK_APTT_HOURS = "6–8";
+
+// 原表只列整數 aPTT。有小數、落在兩列之間時（例如 75.5 秒），一律歸入「較高」的區間，
+// 也就是給較少 heparin、降低出血風險（Kiwi 2026-11-02 決定）。因此每一列以「≤ 該列上限整數」判斷。
+
 export const PROTOCOLS = {
   acs: {
     label: "ACS",
@@ -8,8 +14,8 @@ export const PROTOCOLS = {
     // 依 2025 ACC/AHA ACS guideline UFH bolus 上限 4,000 U（Kiwi 2026-11-02 決定）
     bolusCapUnits: 4000,
     bands: [
-      { label: "< 40 秒", test: (value) => value < 40, bolusPerKg: 50, rateDeltaPerKg: 2 },
-      { label: "40–49 秒", test: (value) => value < 50, rateDeltaPerKg: 2 },
+      { label: "< 40 秒", test: (value) => value <= 39, bolusPerKg: 50, rateDeltaPerKg: 2 },
+      { label: "40–49 秒", test: (value) => value <= 49, rateDeltaPerKg: 2 },
       { label: "50–75 秒", test: (value) => value <= 75, rateDeltaPerKg: 0 },
       { label: "76–85 秒", test: (value) => value <= 85, rateDeltaPerKg: -2 },
       { label: "86–100 秒", test: (value) => value <= 100, holdMinutes: 30, rateDeltaPerKg: -2 },
@@ -22,11 +28,11 @@ export const PROTOCOLS = {
     bolusCapUnits: 5000,
     therapeuticRange: "60–79 秒",
     bands: [
-      { label: "< 35 秒", test: (value) => value < 35, bolusPerKg: 80, rateDeltaPerKg: 4 },
-      { label: "35–49 秒", test: (value) => value < 50, bolusPerKg: 40, rateDeltaPerKg: 2 },
-      { label: "50–59 秒", test: (value) => value < 60, rateDeltaPerKg: 2 },
-      { label: "60–79 秒", test: (value) => value < 80, rateDeltaPerKg: 0 },
-      { label: "80–89 秒", test: (value) => value < 90, rateDeltaPerKg: -2 },
+      { label: "< 35 秒", test: (value) => value <= 34, bolusPerKg: 80, rateDeltaPerKg: 4 },
+      { label: "35–49 秒", test: (value) => value <= 49, bolusPerKg: 40, rateDeltaPerKg: 2 },
+      { label: "50–59 秒", test: (value) => value <= 59, rateDeltaPerKg: 2 },
+      { label: "60–79 秒", test: (value) => value <= 79, rateDeltaPerKg: 0 },
+      { label: "80–89 秒", test: (value) => value <= 89, rateDeltaPerKg: -2 },
       { label: "90–120 秒", test: (value) => value <= 120, holdMinutes: 30, rateDeltaPerKg: -2 },
       { label: "> 120 秒", test: () => true, holdMinutes: 60, rateDeltaPerKg: -3, notifyPhysician: true },
     ],
@@ -55,14 +61,21 @@ export function calculateAdjustment({ indication, weightKg, apttSeconds, current
   assertFiniteInRange("apttSeconds", apttSeconds, 1, 300);
   assertFiniteInRange("currentRateMlHour", currentRateMlHour, 0, 200);
 
-  const band = protocol.bands.find(({ test }) => test(apttSeconds));
+  const findBand = (value) => protocol.bands.find(({ test }) => test(value));
+  const band = findBand(apttSeconds);
+  // 小數 aPTT 落在兩列之間：記下較低那一列，畫面提醒「差距很小時請醫師評估」
+  const floorBand = findBand(Math.floor(apttSeconds));
   const bolusUnits = band.bolusPerKg ? roundBolus(weightKg * band.bolusPerKg, protocol.bolusCapUnits) : 0;
   const rawRateDelta = (weightKg * band.rateDeltaPerKg) / HEPARIN_CONCENTRATION;
-  const rateDeltaMlHour = Math.sign(rawRateDelta) * roundToIncrement(Math.abs(rawRateDelta), 0.5);
+  // 依表應增減的量（mL/h）
+  const protocolDeltaMlHour = Math.sign(rawRateDelta) * roundToIncrement(Math.abs(rawRateDelta), 0.5);
   const newRateMlHour = roundToIncrement(
-    Math.max(0, currentRateMlHour + rateDeltaMlHour),
+    Math.max(0, currentRateMlHour + protocolDeltaMlHour),
     0.5,
   );
+  // 減量超過目前流速時新流速為 0；此時實際只減了目前流速那麼多
+  const clampedToZero = currentRateMlHour + protocolDeltaMlHour < 0;
+  const rateDeltaMlHour = clampedToZero ? -currentRateMlHour : protocolDeltaMlHour;
 
   return {
     indication,
@@ -77,6 +90,13 @@ export function calculateAdjustment({ indication, weightKg, apttSeconds, current
     bolusUnits,
     holdMinutes: band.holdMinutes ?? 0,
     rateDeltaMlHour,
+    protocolDeltaMlHour,
+    clampedToZero,
+    // 新流速為 0（等同停止輸注），不論是否被截到 0，都需要醫師評估
+    reachesZero: newRateMlHour === 0 && protocolDeltaMlHour < 0,
+    betweenBands: floorBand !== band,
+    lowerBandLabel: floorBand !== band ? floorBand.label : null,
+    recheckApttHours: RECHECK_APTT_HOURS,
     currentRateMlHour,
     currentUnitsHour: currentRateMlHour * HEPARIN_CONCENTRATION,
     newRateMlHour,

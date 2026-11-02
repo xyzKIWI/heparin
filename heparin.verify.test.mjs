@@ -162,7 +162,7 @@ describe("0. 高醫原表照片逐格比對", () => {
 
   // 出處：[原表照片] 頁尾「f/u APTT q8h（若連續兩次 APTT 均在治療範圍內，可以改 QD 監測）；f/u Hb and Plt regularly (initially, QD)」
   test("原表重抽 aPTT q8h、連續兩次在範圍內改 QD，與頁尾文字一致", () => {
-    assert.match(HTML, /原表為 q8h、連續兩次治療範圍可改 QD，並追蹤 Hb 與 platelet/);
+    assert.match(HTML, /調整後 6–8 小時追蹤 aPTT（急診 q6h–q8h；原表為 q8h、連續兩次治療範圍可改 QD），並追蹤 Hb 與 platelet/);
   });
 });
 
@@ -246,12 +246,11 @@ describe("1. 程式規則與頁面文字一致", () => {
     assert.doesNotThrow(() => calc("vte", 300, 300, 200));
   });
 
-  // 出處：[頁面註]「原表為 q8h、連續兩次治療範圍可改 QD，並追蹤 Hb 與 platelet」
+  // 出處：[頁面註] 與 Kiwi 2026-11-02「臨床急診室 q6h–q8h 抽血追蹤」；[原表照片] q8h、連續兩次在範圍內改 QD
   // 重抽 aPTT 的時間只以頁尾文字呈現，計算結果不含重抽時間，因此只能檢查文字存在。
-  test("重抽 aPTT 時間：頁尾文字有 q8h 與連續兩次治療範圍改 QD", () => {
-    assert.match(HTML, /原表為 q8h、連續兩次治療範圍可改 QD，並追蹤 Hb 與 platelet/);
-    const out = calc("acs", 60, 60, 21);
-    assert.equal("recheckHours" in out, false, "計算結果目前沒有重抽時間欄位（報告記錄）");
+  test("重抽 aPTT 時間：頁尾寫 6–8 小時（急診 q6h–q8h；原表 q8h、連續兩次治療範圍改 QD）", () => {
+    assert.match(HTML, /調整後 6–8 小時追蹤 aPTT（急診 q6h–q8h；原表為 q8h、連續兩次治療範圍可改 QD），並追蹤 Hb 與 platelet/);
+    assert.equal(calc("acs", 60, 60, 21).recheckApttHours, "6–8");
   });
 });
 
@@ -292,27 +291,48 @@ describe("2. aPTT 區間：每區至少一例，切點上下各測一次", () =>
     }
   });
 
-  // 未找到可驗證範例：頁面表只列整數，原表對兩個整數之間的小數沒有規定。
-  // 以下鎖住「目前」行為以防回歸，並列入報告「邊界行為可疑」請 Kiwi 判斷。
-  // 目前規則：ACS 75.5、85.5 歸到「較高」區間；其餘（含 VTE 79.5、89.5）歸到「較低」區間。
+  // 出處：原表只列整數，對小數沒有規定。Kiwi 2026-11-02 決定：落在兩列之間時一律歸入「較高」的區間
+  // （較少 heparin，降低出血風險），畫面提醒差距很小時由醫師評估。[頁面註] 亦寫明此規則。
   const gapCases = [
-    ["acs", 39.5, "< 40 秒"],
-    ["acs", 49.5, "40–49 秒"],
-    ["acs", 75.5, "76–85 秒"],
-    ["acs", 85.5, "86–100 秒"],
-    ["acs", 100.5, "> 100 秒"],
-    ["vte", 34.5, "< 35 秒"],
-    ["vte", 49.5, "35–49 秒"],
-    ["vte", 59.5, "50–59 秒"],
-    ["vte", 79.5, "60–79 秒"],
-    ["vte", 89.5, "80–89 秒"],
-    ["vte", 120.5, "> 120 秒"],
+    // [適應症, aPTT, 歸入區間, 較低那一列]
+    ["acs", 39.5, "40–49 秒", "< 40 秒"],
+    ["acs", 49.5, "50–75 秒", "40–49 秒"],
+    ["acs", 75.5, "76–85 秒", "50–75 秒"],
+    ["acs", 85.5, "86–100 秒", "76–85 秒"],
+    ["acs", 100.5, "> 100 秒", "86–100 秒"],
+    ["vte", 34.5, "35–49 秒", "< 35 秒"],
+    ["vte", 49.5, "50–59 秒", "35–49 秒"],
+    ["vte", 59.5, "60–79 秒", "50–59 秒"],
+    ["vte", 79.5, "80–89 秒", "60–79 秒"],
+    ["vte", 89.5, "90–120 秒", "80–89 秒"],
+    ["vte", 120.5, "> 120 秒", "90–120 秒"],
   ];
-  for (const [indication, aptt, label] of gapCases) {
-    test(`小數 aPTT ${indication} ${aptt} 秒目前歸在 ${label}（未找到可驗證範例）`, () => {
-      assert.equal(calc(indication, 60, aptt, 20).bandLabel, label);
+  for (const [indication, aptt, label, lower] of gapCases) {
+    test(`小數 aPTT ${indication} ${aptt} 秒歸入較高的 ${label}，並標示介於兩列之間`, () => {
+      const out = calc(indication, 60, aptt, 20);
+      assert.equal(out.bandLabel, label);
+      assert.equal(out.betweenBands, true);
+      assert.equal(out.lowerBandLabel, lower);
     });
   }
+
+  test("同一列內的小數不標示「介於兩列之間」", () => {
+    for (const [indication, aptt] of [["acs", 45.5], ["acs", 60.3], ["acs", 99.9], ["vte", 70.5], ["vte", 119.9], ["vte", 20.2]]) {
+      const out = calc(indication, 60, aptt, 20);
+      assert.equal(out.betweenBands, false, `${indication} ${aptt}`);
+      assert.equal(out.lowerBandLabel, null);
+    }
+  });
+
+  // 統一規則的完整掃描：任何 aPTT x 的區間 = 整數 ceil(x) 的區間（介於 Y 與 Y+1 之間 → 歸入 Y+1 那一列）
+  test("每 0.1 秒掃描：小數 aPTT 的區間等於無條件進位後整數的區間", () => {
+    for (const indication of ["acs", "vte"]) {
+      for (let t = 10; t <= 3000; t += 1) {
+        const x = t / 10;
+        assert.equal(calc(indication, 60, x, 20).bandLabel, expectedBand(indication, Math.ceil(x)).label, `${indication} ${x}`);
+      }
+    }
+  });
 });
 
 // ===========================================================================
@@ -452,14 +472,35 @@ describe("4. 單位換算 U/kg/h → U/h → mL/h 與進位方式", () => {
     assert.equal(out.currentUnitsHour, 17.3 * 40); // 692 U/h（未捨入）
   });
 
-  // 出處：[README]「調整後流速不低於 0 mL/h」
-  test("減量後不低於 0 mL/h；但 rateDeltaMlHour 仍顯示完整減量（記錄目前行為）", () => {
-    const out = calc("acs", 60, 110, 2); // 減 4.5 mL/h，但只剩 2 mL/h
+  // 出處：[README]「調整後流速不低於 0 mL/h」；Kiwi 2026-11-02 決定：顯示實際減量、提醒醫師評估
+  test("減量超過目前流速：新流速 0，rateDeltaMlHour 為實際減量，保留依表應減量並標示", () => {
+    const out = calc("acs", 60, 110, 2); // 依表減 4.5 mL/h，但只剩 2 mL/h
     assert.equal(out.newRateMlHour, 0);
     assert.equal(out.newUnitsHour, 0);
-    assert.equal(out.rateDeltaMlHour, -4.5, "頁面會顯示「減少 4.5 mL/h」，實際只減了 2 mL/h（報告記錄）");
+    assert.equal(out.rateDeltaMlHour, -2);
+    assert.equal(out.protocolDeltaMlHour, -4.5);
+    assert.equal(out.clampedToZero, true);
+    assert.equal(out.reachesZero, true);
+    // 剛好減到 0：不是被截斷，但仍提醒停止輸注
+    const exact = calc("acs", 60, 80, 3); // −3 → 0
+    assert.deepEqual([exact.newRateMlHour, exact.rateDeltaMlHour, exact.clampedToZero, exact.reachesZero], [0, -3, false, true]);
+    // 目前已是 0：實際減量 0
     const zero = calc("vte", 60, 130, 0);
     assert.equal(zero.newRateMlHour, 0);
+    assert.equal(Math.abs(zero.rateDeltaMlHour), 0);
+    assert.equal(zero.clampedToZero, true);
+    // 沒有減到 0：不標示
+    const normal = calc("acs", 60, 80, 21);
+    assert.deepEqual([normal.rateDeltaMlHour, normal.protocolDeltaMlHour, normal.clampedToZero, normal.reachesZero], [-3, -3, false, false]);
+  });
+
+  // 出處：Kiwi 2026-11-02「臨床急診室 q6h–q8h 抽血追蹤」；[原表照片] f/u APTT q8h
+  test("每個結果都帶有下次 aPTT 6–8 小時", () => {
+    for (const indication of ["acs", "vte"]) {
+      for (const band of EXPECTED[indication].bands) {
+        assert.equal(calc(indication, 60, band.lo ?? band.hi, 20).recheckApttHours, "6–8");
+      }
+    }
   });
 });
 
