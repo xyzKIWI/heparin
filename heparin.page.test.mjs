@@ -363,4 +363,151 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
     assert.equal(high.shown, true);
     assert.equal(high.error, "");
   });
+
+  // ===========================================================================
+  // Enoxaparin 分頁（Kiwi 2026-11-03）。出處同 lmwh.test.mjs
+  async function openLmwh() {
+    await page.click("#tab-lmwh");
+    assert.equal(await page.isVisible("#panel-lmwh"), true);
+  }
+
+  async function runLmwh({ weight, age, cr, sex, height = "", dialysis = false }) {
+    await openLmwh();
+    await page.fill("#lmwh-weight", String(weight ?? ""));
+    await page.fill("#lmwh-age", String(age ?? ""));
+    await page.fill("#lmwh-cr", String(cr ?? ""));
+    await page.fill("#lmwh-height", String(height));
+    await page.evaluate((s) => {
+      document.querySelectorAll('#lmwh-form input[name="sex"]').forEach((el) => { el.checked = el.value === s; });
+    }, sex ?? "");
+    await page.setChecked("#lmwh-dialysis", dialysis, { force: true });
+    await page.evaluate(() => { window.__copied = undefined; });
+    await page.click("#lmwh-form button.calculate");
+    return page.evaluate(async () => {
+      const $ = (s) => document.querySelector(s);
+      const result = $("#lmwh-result");
+      const shown = result.classList.contains("show");
+      if (shown) {
+        $("#lmwh-copy").click();
+        await new Promise((r) => setTimeout(r, 0));
+      }
+      return {
+        shown,
+        error: $("#lmwh-error").textContent,
+        classes: [...result.classList].filter((c) => !["result", "show"].includes(c)),
+        summary: $("#lmwh-summary").textContent,
+        title: $("#lmwh-title").textContent,
+        rows: [...document.querySelectorAll("#lmwh-actions .action")].map((r) => [
+          r.querySelector(".action-label").textContent,
+          r.querySelector(".action-value").textContent,
+        ]),
+        warnings: [...document.querySelectorAll("#lmwh-warnings .rate-warning")].map((p) => p.textContent),
+        note: $("#lmwh-note").textContent,
+        copy: window.__copied ?? null,
+      };
+    });
+  }
+
+  test("分頁：預設顯示 UFH；切到 LMWH 後網址帶 #lmwh；直接開 #lmwh 會進 LMWH 分頁", async () => {
+    await page.goto(baseUrl);
+    assert.equal(await page.isVisible("#panel-ufh"), true);
+    assert.equal(await page.isVisible("#panel-lmwh"), false);
+    await openLmwh();
+    assert.equal(await page.isVisible("#panel-ufh"), false);
+    assert.match(page.url(), /#lmwh$/);
+    await page.click("#tab-ufh");
+    assert.equal(await page.isVisible("#panel-ufh"), true);
+    assert.doesNotMatch(page.url(), /#lmwh/);
+    await page.goto(baseUrl + "#lmwh");
+    await page.reload();
+    assert.equal(await page.isVisible("#panel-lmwh"), true);
+    assert.equal(await page.getAttribute("#tab-lmwh", "aria-selected"), "true");
+    await page.goto(baseUrl);
+  });
+
+  test("LMWH 一般情況：兩種劑量都顯示，四捨五入至 10 mg，無提醒", async () => {
+    const r = await runLmwh({ weight: 63, age: 60, cr: 1, sex: "male" }); // CrCl 80×63/72 = 70.0
+    assert.equal(r.shown, true);
+    assert.deepEqual(r.classes, []);
+    assert.equal(r.summary, "Enoxaparin｜63 kg｜CrCl 70.0 mL/min");
+    assert.equal(r.title, "1 mg/kg q12h　60 mg");
+    assert.deepEqual(r.rows, [
+      ["1 mg/kg q12h", "60 mg（0.6 mL）SC q12h"],
+      ["1.5 mg/kg q24h", "90 mg（0.9 mL）SC q24h"],
+      ["CrCl（Cockcroft-Gault）", "70.0 mL/min"],
+    ]);
+    assert.deepEqual(r.warnings, []);
+    assert.match(r.note, /計算值：1 mg\/kg × 63 kg = 63 mg → 60 mg；1\.5 mg\/kg × 63 kg = 94\.5 mg → 90 mg。/);
+    assert.match(r.note, /仿單沒有 VTE 治療劑量上限/);
+    assert.equal(r.copy, [
+      "Enoxaparin（Clexane）VTE / PE 治療",
+      "體重 63 kg；年齡 60；男；Cr 1 mg/dL；CrCl 70.0 mL/min",
+      "1 mg/kg q12h：60 mg（0.6 mL）SC q12h（計算值 63 mg）",
+      "1.5 mg/kg q24h：90 mg（0.9 mL）SC q24h（計算值 94.5 mg）",
+      "四捨五入至 10 mg；須人工核對後執行",
+    ].join("\n"));
+  });
+
+  test("LMWH CrCl < 30：只給 1 mg/kg q24h，橘色，提醒台灣仿單不建議", async () => {
+    const r = await runLmwh({ weight: 60, age: 80, cr: 2, sex: "female" }); // 60×60/144 × 0.85 = 21.25
+    assert.deepEqual(r.classes, ["hold"]);
+    assert.equal(r.title, "CrCl < 30：1 mg/kg q24h　60 mg");
+    assert.deepEqual(r.rows.slice(0, 2), [["1 mg/kg q24h（CrCl < 30）", "60 mg（0.6 mL）SC q24h"], ["CrCl（Cockcroft-Gault）", "21.3 mL/min"]]);
+    assert.equal(r.warnings.length, 1);
+    assert.match(r.warnings[0], /台灣仿單（2017 版）為不建議使用、應改用傳統肝素/);
+  });
+
+  test("LMWH CrCl 30–60：照常給兩種劑量，提醒台灣仿單列為不建議", async () => {
+    const r = await runLmwh({ weight: 60, age: 70, cr: 1.5, sex: "male" }); // 70×60/108 = 38.9
+    assert.equal(r.rows.length, 3);
+    assert.match(r.warnings[0], /CrCl 30–60：美國仿單不需調整劑量；台灣仿單（2017 版）列為不建議使用/);
+  });
+
+  test("LMWH 透析／ESRD：不給劑量，紅色，請改用 UFH", async () => {
+    const r = await runLmwh({ weight: 60, age: 50, cr: 8, sex: "male", dialysis: true });
+    assert.deepEqual(r.classes, ["notify"]);
+    assert.equal(r.title, "透析／ESRD：避免使用，改用 UFH");
+    assert.deepEqual(r.rows[0], ["建議", "避免使用 enoxaparin，改用 UFH"]);
+    assert.ok(!r.rows.some(([k]) => k.includes("mg/kg")));
+    assert.match(r.warnings.join(), /高醫藥典建議避免使用 enoxaparin/);
+    assert.doesNotMatch(r.note, /計算值/);
+  });
+
+  test("LMWH 體重 > 100 kg 且 BMI > 40：不封頂，三則提醒", async () => {
+    const r = await runLmwh({ weight: 130, age: 50, cr: 1, sex: "male", height: 170 }); // BMI 45.0
+    assert.equal(r.summary, "Enoxaparin｜130 kg｜CrCl 162.5 mL/min｜BMI 45.0");
+    assert.deepEqual(r.rows.slice(0, 2), [["1 mg/kg q12h", "130 mg（1.3 mL）SC q12h"], ["1.5 mg/kg q24h", "200 mg（2.0 mL）SC q24h"]]);
+    assert.deepEqual(r.rows.at(-1), ["BMI", "45.0"]);
+    assert.equal(r.warnings.length, 3);
+    assert.match(r.warnings[0], /體重 > 100 kg：台灣仿單未評估/);
+    assert.match(r.warnings[1], /BMI > 40：.*0\.8 mg\/kg q12h ≈ 100 mg/);
+    assert.match(r.warnings[2], /監測 anti-Xa 的效益未確立/);
+  });
+
+  test("LMWH 體重 < 40 kg 提醒", async () => {
+    const r = await runLmwh({ weight: 38, age: 70, cr: 0.6, sex: "female" });
+    assert.ok(r.warnings.some((w) => w.startsWith("體重 < 40 kg")));
+  });
+
+  const lmwhInvalid = [
+    ["缺性別", { weight: 60, age: 60, cr: 1 }],
+    ["缺體重", { age: 60, cr: 1, sex: "male" }],
+    ["年齡 17", { weight: 60, age: 17, cr: 1, sex: "male" }],
+    ["Cr 0", { weight: 60, age: 60, cr: 0, sex: "male" }],
+    ["身高 99", { weight: 60, age: 60, cr: 1, sex: "male", height: 99 }],
+  ];
+  for (const [name, input] of lmwhInvalid) {
+    test(`LMWH 無效輸入不顯示結果：${name}`, async () => {
+      await runLmwh({ weight: 60, age: 60, cr: 1, sex: "male" });
+      const r = await runLmwh(input);
+      assert.equal(r.shown, false);
+      assert.equal(r.error, "請完整輸入有效的體重、年齡、血清 Cr 與性別。");
+    });
+  }
+
+  test("切回 UFH 分頁後照常計算", async () => {
+    await page.click("#tab-ufh");
+    const r = await run({ indication: "acs", weight: 60, aptt: 60, rate: 21 });
+    assert.equal(r.title, "已在治療範圍，維持原流速");
+  });
 });

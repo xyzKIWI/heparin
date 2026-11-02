@@ -655,7 +655,7 @@ describe("8. 公開 repo 不含院內人員資料", () => {
   // Kiwi 2026-11-03：院內醫師姓名與職編不放進公開 repo。
   // 高醫藥典的「限特定醫師」欄格式為「姓名[職編]」（中文 2–4 字＋方括號內 6–7 位數字），出現就失敗。
   test("README、報告、構想文件、頁面與程式都沒有「姓名[職編]」格式的資料", () => {
-    const files = ["README.md", "TEST_REPORT.md", "ACS_GUIDELINE_PROPOSAL.md", "index.html", "heparin.js"];
+    const files = ["README.md", "TEST_REPORT.md", "ACS_GUIDELINE_PROPOSAL.md", "index.html", "heparin.js", "lmwh.js"];
     for (const file of files) {
       const text = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
       assert.doesNotMatch(text, /[\u4e00-\u9fff]{2,4}\[\d{6,7}\]/, file);

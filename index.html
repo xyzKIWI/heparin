@@ -82,6 +82,15 @@
   .disc{margin:14px 0 0; padding:12px 15px; font-size:.78rem; color:var(--muted); background:#fff; border:1px solid var(--line); border-radius:10px;}
   .disc b{color:#475569;}
   .back{display:inline-block; margin:14px 0 0; color:var(--teal-dark); text-decoration:none; font-size:.83rem;}
+  [hidden]{display:none !important;}
+  .tabs{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:0 0 14px; padding:4px; background:#e8eef3; border-radius:11px;}
+  .tab{min-height:44px; border:0; border-radius:8px; background:transparent; color:var(--muted); font:inherit; font-weight:750; font-size:.9rem; line-height:1.3; cursor:pointer;}
+  .tab[aria-selected="true"]{background:#fff; color:var(--teal-dark); box-shadow:0 1px 4px rgba(22,57,91,.12);}
+  .tab:focus-visible{outline:3px solid rgba(14,116,144,.25); outline-offset:2px;}
+  .check{display:flex; align-items:center; gap:9px; min-height:46px; margin:0; font-weight:700; font-size:.93rem; cursor:pointer;}
+  .check input{width:20px; height:20px; accent-color:var(--teal);}
+  .warnings .rate-warning{display:block;}
+  #lmwh-summary{text-transform:none; letter-spacing:.02em;}
   @media(max-width:620px){
     .wrap{padding:14px 12px 28px;}
     .panel{padding:17px 15px;}
@@ -93,10 +102,16 @@
 <body>
 <header>
   <h1>Heparin dose 調整</h1>
-  <div class="sub">高醫 ICU protocol｜ACS・VTE / PE</div>
+  <div class="sub">高醫 ICU protocol｜ACS・VTE / PE｜Enoxaparin</div>
 </header>
 
 <main class="wrap">
+  <div class="tabs" role="tablist" aria-label="計算項目">
+    <button class="tab" type="button" role="tab" id="tab-ufh" aria-selected="true" aria-controls="panel-ufh">UFH 流速調整</button>
+    <button class="tab" type="button" role="tab" id="tab-lmwh" aria-selected="false" aria-controls="panel-lmwh">VTE / PE 改用 LMWH</button>
+  </div>
+
+  <div id="panel-ufh" role="tabpanel" aria-labelledby="tab-ufh">
   <div class="concentration" role="note">藥袋濃度：Heparin 20,000 U / NS 500 mL ＝ 40 U/mL</div>
 
   <form class="panel" id="calculator" novalidate>
@@ -189,10 +204,110 @@
     減量超過目前流速時新流速為 0（等同停止輸注），請醫師評估。新流速超過 25 U/kg/h 或 2,000 U/h 時會提醒，請醫師／藥師確認（2,000 U/h 為高醫藥典 VTE 起始速率上限；指引與藥典都未規定調整後的速率上限）。
     調整後 6–8 小時追蹤 aPTT（急診 q6h–q8h；原表為 q8h、連續兩次治療範圍可改 QD），並追蹤 Hb 與 platelet。（資料校對：2026-11-03）
   </div>
+  </div>
+
+  <div id="panel-lmwh" role="tabpanel" aria-labelledby="tab-lmwh" hidden>
+    <div class="concentration" role="note">Enoxaparin（Clexane）100 mg/mL；高醫品項 20 mg/0.2 mL、60 mg/0.6 mL</div>
+
+    <form class="panel" id="lmwh-form" novalidate>
+      <div class="grid">
+        <div class="field">
+          <label for="lmwh-weight">體重</label>
+          <div class="input-wrap"><input id="lmwh-weight" name="weight" type="number" min="20" max="300" step="0.1" inputmode="decimal" required autocomplete="off"><span class="unit">kg</span></div>
+        </div>
+        <div class="field">
+          <label for="lmwh-age">年齡</label>
+          <div class="input-wrap"><input id="lmwh-age" name="age" type="number" min="18" max="120" step="1" inputmode="numeric" required autocomplete="off"><span class="unit">歲</span></div>
+        </div>
+        <div class="field">
+          <label for="lmwh-cr">血清 Cr</label>
+          <div class="input-wrap"><input id="lmwh-cr" name="cr" type="number" min="0.1" max="20" step="0.01" inputmode="decimal" required autocomplete="off"><span class="unit">mg/dL</span></div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <span class="field-label">性別</span>
+          <div class="segmented">
+            <label class="segment"><input type="radio" name="sex" value="male" required><span>男</span></label>
+            <label class="segment"><input type="radio" name="sex" value="female"><span>女</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label for="lmwh-height">身高（選填，算 BMI）</label>
+          <div class="input-wrap"><input id="lmwh-height" name="height" type="number" min="100" max="250" step="0.1" inputmode="decimal" autocomplete="off"><span class="unit">cm</span></div>
+        </div>
+        <div class="field">
+          <span class="field-label">透析</span>
+          <label class="check"><input id="lmwh-dialysis" name="dialysis" type="checkbox"> 透析中／ESRD</label>
+        </div>
+      </div>
+      <span class="hint">不輸入病人姓名或病歷號；CrCl 以 Cockcroft-Gault（實際體重）計算。</span>
+      <button class="calculate" type="submit">計算 Enoxaparin 劑量</button>
+      <p class="form-error" id="lmwh-error" role="alert"></p>
+    </form>
+
+    <section class="result" id="lmwh-result" aria-live="polite">
+      <div class="result-head">
+        <div><div class="eyebrow" id="lmwh-summary"></div><h2 id="lmwh-title"></h2><div class="target" id="lmwh-target"></div></div>
+      </div>
+      <div class="actions" id="lmwh-actions"></div>
+      <div class="warnings" id="lmwh-warnings"></div>
+      <div class="result-note" id="lmwh-note"></div>
+      <button class="copy" id="lmwh-copy" type="button">複製結果</button>
+    </section>
+
+    <details>
+      <summary>Enoxaparin 劑量依據</summary>
+      <div class="details-body">
+        <table>
+          <thead><tr><th>項目</th><th>內容（出處）</th></tr></thead>
+          <tbody>
+            <tr><td>VTE / PE 治療</td><td>1 mg/kg q12h SC（美國仿單、台灣仿單）；或 1.5 mg/kg q24h SC（美國仿單；台灣仿單 2017 版未列）</td></tr>
+            <tr><td>CrCl &lt; 30</td><td>1 mg/kg q24h（美國仿單、高醫藥典）；台灣仿單 2017 版：約 30 以下不建議，應用傳統肝素</td></tr>
+            <tr><td>CrCl 30–60</td><td>美國仿單不需調整；台灣仿單 2017 版列為不建議使用</td></tr>
+            <tr><td>透析／ESRD</td><td>避免使用（高醫藥典）</td></tr>
+            <tr><td>劑量上限</td><td>仿單沒有 VTE 治療劑量上限；ASH 2018 建議肥胖者依實際體重、不封頂</td></tr>
+            <tr><td>體重 &gt; 100 kg／&lt; 40 kg</td><td>台灣仿單：未評估，需特別臨床監測</td></tr>
+            <tr><td>BMI &gt; 40</td><td>減量可能合理（2026 AHA/ACC PE 指引，COR 2b）；監測 anti-Xa 效益未確立</td></tr>
+            <tr><td>療程</td><td>台灣仿單不超過 10 天；健保 DVT 治療每次療程 &lt; 10 天</td></tr>
+          </tbody>
+        </table>
+        <ul class="source-list">
+          <li><a href="https://products.sanofi.us/lovenox/lovenox.pdf" target="_blank" rel="noopener">Lovenox 美國仿單</a></li>
+          <li><a href="https://www.ahajournals.org/doi/10.1161/CIR.0000000000001415" target="_blank" rel="noopener">2026 AHA/ACC Acute PE Guideline</a></li>
+          <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6258922/" target="_blank" rel="noopener">ASH 2018 VTE Guideline：Optimal management of anticoagulation therapy</a></li>
+        </ul>
+      </div>
+    </details>
+
+    <div class="disc">
+      <b>臨床安全：</b>本分頁依仿單、高醫藥典與指引計算 enoxaparin 治療劑量，僅供醫療專業人員核算，不是醫囑。劑量四捨五入至 10 mg（100 mg/mL），須再次人工核對體重、腎功能與出血風險。2026 AHA/ACC PE 指引：需要注射型抗凝時，一般建議 LMWH 優於 UFH（COR 1）。治療期間監測血小板。（資料校對：2026-11-03）
+    </div>
+  </div>
+
   <a class="back" id="back-home" href="../">← 回急診臨床小工具</a>
   <script>
     // er.kiwi-ai.uk／pages.dev 的上一層就是入口；github.io 版入口在 /ed-tools/
     if (location.hostname.endsWith('github.io')) document.getElementById('back-home').href = '/ed-tools/';
+
+    // 分頁切換；網址加 #lmwh 可直接開 LMWH 分頁
+    (function () {
+      const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+      function show(id) {
+        tabs.forEach(function (t) {
+          const on = t.id === id;
+          t.setAttribute('aria-selected', String(on));
+          document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+        });
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () {
+          show(t.id);
+          history.replaceState(null, '', t.id === 'tab-lmwh' ? '#lmwh' : location.pathname + location.search);
+        });
+      });
+      if (location.hash === '#lmwh') show('tab-lmwh');
+    })();
   </script>
 </main>
 
@@ -336,6 +451,132 @@
         output.highNewRate ? `新流速偏高：${highRateText}` : null,
         output.notifyPhysician ? "通知醫師" : null,
         "濃度 40 U/mL；須人工核對後執行",
+      ].filter(Boolean).join("\n");
+
+      result.classList.add("show");
+      result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch {
+      error.textContent = "輸入超出可計算範圍，請確認數值。";
+    }
+  });
+
+  copyButton.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(copyText);
+      copyButton.textContent = "已複製";
+      setTimeout(() => { copyButton.textContent = "複製結果"; }, 1500);
+    } catch {
+      copyButton.textContent = "無法複製，請手動選取";
+    }
+  });
+</script>
+<script type="module">
+  import { calculateEnoxaparin } from "./lmwh.js";
+
+  const form = document.querySelector("#lmwh-form");
+  const error = document.querySelector("#lmwh-error");
+  const result = document.querySelector("#lmwh-result");
+  const actions = document.querySelector("#lmwh-actions");
+  const warnings = document.querySelector("#lmwh-warnings");
+  const copyButton = document.querySelector("#lmwh-copy");
+  let copyText = "";
+
+  const num = (value, digits = 1) => Number.isInteger(value) ? String(value) : value.toFixed(digits);
+  const vol = (ml) => ml.toFixed(1);
+
+  function row(label, value, extraClass = "") {
+    const div = document.createElement("div");
+    div.className = "action";
+    const left = document.createElement("span");
+    left.className = "action-label";
+    left.textContent = label;
+    const right = document.createElement("span");
+    right.className = `action-value ${extraClass}`.trim();
+    right.textContent = value;
+    div.append(left, right);
+    actions.append(div);
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    error.textContent = "";
+    result.className = "result";
+
+    if (!form.checkValidity()) {
+      error.textContent = "請完整輸入有效的體重、年齡、血清 Cr 與性別。";
+      form.reportValidity();
+      return;
+    }
+
+    const data = new FormData(form);
+    const heightRaw = data.get("height");
+    try {
+      const out = calculateEnoxaparin({
+        weightKg: Number(data.get("weight")),
+        heightCm: heightRaw === "" ? null : Number(heightRaw),
+        ageYears: Number(data.get("age")),
+        sex: data.get("sex"),
+        serumCrMgDl: Number(data.get("cr")),
+        onDialysis: data.get("dialysis") === "on",
+      });
+      actions.replaceChildren();
+      warnings.replaceChildren();
+
+      const crcl = out.crclMlMin.toFixed(1);
+      document.querySelector("#lmwh-summary").textContent =
+        `Enoxaparin｜${num(out.weightKg)} kg｜CrCl ${crcl} mL/min` + (out.bmi === null ? "" : `｜BMI ${out.bmi.toFixed(1)}`);
+      document.querySelector("#lmwh-target").textContent = "VTE / PE 治療劑量；四捨五入至 10 mg（100 mg/mL）";
+
+      const primary = out.regimens[0];
+      let title;
+      if (out.renal === "dialysis") {
+        title = "透析／ESRD：避免使用，改用 UFH";
+        result.classList.add("notify");
+      } else if (out.renal === "severe") {
+        title = `CrCl < 30：1 mg/kg q24h　${primary.doseMg} mg`;
+        result.classList.add("hold");
+      } else {
+        title = `1 mg/kg q12h　${primary.doseMg} mg`;
+      }
+      document.querySelector("#lmwh-title").textContent = title;
+
+      const regimenLines = out.regimens.map((r) => {
+        const text = `${r.doseMg} mg（${vol(r.volumeMl)} mL）SC ${r.interval}`;
+        row(r.label, text, r === primary ? "rate-main" : "");
+        return `${r.label}：${text}（計算值 ${num(r.rawMg)} mg）`;
+      });
+      if (out.renal === "dialysis") row("建議", "避免使用 enoxaparin，改用 UFH", "notify-line");
+      row("CrCl（Cockcroft-Gault）", `${crcl} mL/min`);
+      if (out.bmi !== null) row("BMI", out.bmi.toFixed(1));
+
+      const warn = [];
+      if (out.renal === "severe") warn.push("CrCl < 30：美國仿單與高醫藥典改為每日一次（1 mg/kg q24h）；台灣仿單（2017 版）為不建議使用、應改用傳統肝素。請醫師評估，可考慮監測 anti-Xa。");
+      if (out.renal === "moderate") warn.push("CrCl 30–60：美國仿單不需調整劑量；台灣仿單（2017 版）列為不建議使用。腎功能不全可能使藥物累積，請醫師評估。");
+      if (out.renal === "dialysis") warn.push("透析／ESRD：高醫藥典建議避免使用 enoxaparin，請改用「UFH 流速調整」分頁。");
+      if (out.lowWeight) warn.push("體重 < 40 kg：台灣仿單未評估，出血風險可能增加，需特別臨床監測。");
+      if (out.highWeight) warn.push("體重 > 100 kg：台灣仿單未評估，療效可能稍微下降，需特別臨床監測。仿單沒有劑量上限；ASH 2018 建議依實際體重給藥、不封頂。");
+      if (out.bmiOver40) warn.push(`BMI > 40：2026 PE 指引認為減量可能合理（COR 2b；研究用 0.8 mg/kg q12h ≈ ${out.reducedObeseDoseMg} mg），請醫師評估。`);
+      if (out.antiXaUncertain) warn.push("體重 > 150 kg 或 BMI > 40：監測 anti-Xa 的效益未確立（2026 PE 指引）。");
+      for (const text of warn) {
+        const p = document.createElement("p");
+        p.className = "rate-warning show";
+        p.setAttribute("role", "alert");
+        p.textContent = text;
+        warnings.append(p);
+      }
+
+      const calcNote = out.regimens.map((r) => `${r.mgPerKg} mg/kg × ${num(out.weightKg)} kg = ${num(r.rawMg)} mg → ${r.doseMg} mg`).join("；");
+      document.querySelector("#lmwh-note").textContent =
+        (calcNote ? `計算值：${calcNote}。` : "") +
+        "仿單沒有 VTE 治療劑量上限。療程：台灣仿單不超過 10 天（健保 DVT 治療每次 < 10 天）。治療期間監測血小板。請人工核對後依醫囑給藥。";
+
+      copyText = [
+        "Enoxaparin（Clexane）VTE / PE 治療",
+        `體重 ${num(out.weightKg)} kg；年齡 ${out.ageYears}；${out.sex === "female" ? "女" : "男"}；Cr ${out.serumCrMgDl} mg/dL；CrCl ${crcl} mL/min` + (out.bmi === null ? "" : `；BMI ${out.bmi.toFixed(1)}`),
+        ...regimenLines,
+        out.renal === "dialysis" ? "透析／ESRD：避免使用，改用 UFH" : null,
+        ...warn,
+        "四捨五入至 10 mg；須人工核對後執行",
       ].filter(Boolean).join("\n");
 
       result.classList.add("show");
