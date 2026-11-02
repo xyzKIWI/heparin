@@ -238,6 +238,8 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
     assert.match(r.copy, /Bolus 4000 U/);
     const footer = await page.textContent(".disc");
     assert.match(footer, /上限 ACS 4,000 U（依 2025 ACC\/AHA 指引）、VTE \/ PE 5,000 U/);
+    // Kiwi 2026-11-02 決定：ACS 調整表維持院內 50–75 秒，頁尾註明指引目標 60–80 秒
+    assert.match(footer, /本表依高醫 MICU\/CCU protocol（ACS 治療範圍 50–75 秒，約 1\.7–2\.6 × control）。2025 ACC\/AHA ACS 指引目標為 aPTT 60–80 秒/);
   });
 
   // 出處：index.html 第 271–280 行「超出常見劑量就出聲提醒（不擋計算）」，門檻 25 U/kg/h（頁面程式碼）

@@ -561,10 +561,14 @@ describe("7. 初始 bolus 與初始速率（頁面文字對照公開指引）", 
     assert.match(HTML, /12 U\/kg\/h（max 1,000 U\/h）/);
   });
 
-  // 出處：[2025 指引] Section 4.4：aPTT 治療範圍 60–80 s；頁面（高醫 protocol）ACS 為 50–75 秒。
-  // 治療範圍要改需要新的 aPTT 區間切點，指引沒有提供 nomogram，待 Kiwi 決定，列入報告。
-  test("ACS 治療範圍：頁面 50–75 秒 vs 2025 指引 60–80 秒", { todo: "與 2025 ACC/AHA 指引不一致，待 Kiwi 決定是否改區間" }, () => {
-    assert.equal(calc("acs", 60, 60, 21).therapeuticRange, "60–80 秒");
+  // 出處：[原表照片] ACS 50–75 s（1.7–2.6 x control）；[2025 指引] Section 4.4 目標 60–80 s，但未提供調整表。
+  // Kiwi 2026-11-02 決定：調整表維持院內 protocol（方案 A），頁尾加註指引目標不同。
+  test("ACS 治療範圍維持院內 50–75 秒，頁尾註明 2025 指引目標 60–80 秒", () => {
+    assert.equal(calc("acs", 60, 60, 21).therapeuticRange, "50–75 秒");
+    assert.match(
+      HTML,
+      /本表依高醫 MICU\/CCU protocol（ACS 治療範圍 50–75 秒，約 1\.7–2\.6 × control）。2025 ACC\/AHA ACS 指引目標為 aPTT 60–80 秒，未提供調整表；如需改用，請依院內 protocol 修訂。/,
+    );
   });
 
   // VTE 初始 80 U/kg、18 U/kg/h 為 Raschke 1993 nomogram 的起始劑量

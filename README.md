@@ -18,6 +18,7 @@
 - 流速以 40 U/mL 換算，四捨五入至 0.5 mL/h。
 - Bolus 四捨五入至 500 U。上限：ACS 4,000 U（依 2025 ACC/AHA ACS Guideline）；VTE / PE 5,000 U（原表）。
 - 調整後流速不低於 0 mL/h。
+- ACS 治療範圍維持高醫 MICU/CCU protocol 的 50–75 秒。2025 ACC/AHA ACS 指引目標為 aPTT 60–80 秒，但未提供調整表；如需改用，須先修訂院內 protocol（構想見 [ACS_GUIDELINE_PROPOSAL.md](ACS_GUIDELINE_PROPOSAL.md)）。
 
 ## 資料來源與校對
 
