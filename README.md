@@ -23,6 +23,19 @@
 - 下次 aPTT：6–8 小時後（急診 q6h–q8h；暫停者自恢復輸注起算）。原表 ICU 為 q8h，連續兩次在治療範圍可改 QD。
 - ACS 治療範圍維持高醫 MICU/CCU protocol 的 50–75 秒。2025 ACC/AHA ACS 指引目標為 aPTT 60–80 秒，但未提供調整表；如需改用，須先修訂院內 protocol（構想見 [ACS_GUIDELINE_PROPOSAL.md](ACS_GUIDELINE_PROPOSAL.md)）。
 
+## VTE / PE 改用 LMWH（Enoxaparin）分頁
+
+2026-11-03 依 Kiwi 決定加入，網址加 `#lmwh` 可直接開啟。輸入體重、年齡、血清 Cr、性別（身高選填，用來算 BMI），計算 Clexane（enoxaparin）治療劑量。
+
+- 同時顯示 **1 mg/kg q12h**（主要）與 **1.5 mg/kg q24h**，四捨五入至 10 mg，並換算 mL（100 mg/mL）
+- CrCl 以 Cockcroft-Gault（實際體重，女性 × 0.85）計算
+  - CrCl < 30：只給 1 mg/kg q24h（美國仿單、高醫藥典），並提醒台灣仿單（2017 版）不建議使用、應改用傳統肝素
+  - CrCl 30–60：照常給藥，提醒台灣仿單（2017 版）列為不建議使用
+  - 透析／ESRD：不給劑量，提醒改用 UFH（高醫藥典：avoid）
+- **不設劑量上限**：美國與台灣仿單都沒有 VTE 治療劑量上限；ASH 2018 建議依實際體重、不封頂
+- 提醒：體重 < 40 kg 或 > 100 kg（台灣仿單未評估）；BMI > 40（2026 PE 指引：減量可能合理，附 0.8 mg/kg 參考值）；體重 > 150 kg 或 BMI > 40（監測 anti-Xa 效益未確立）
+- 出處：[Lovenox 美國仿單](https://products.sanofi.us/lovenox/lovenox.pdf)；克立生注射劑台灣仿單（衛署藥輸字第022354號，Ref. CCDS V13, Feb 2017）；高醫藥典 2CLE20／2CLE60；[2026 AHA/ACC Acute PE Guideline](https://www.ahajournals.org/doi/10.1161/CIR.0000000000001415)；[ASH 2018](https://pmc.ncbi.nlm.nih.gov/articles/PMC6258922/)
+
 ## 資料來源與校對
 
 - 高醫內科加護病房（MICU）與心臟內科加護病房（CCU）共用之「KMUH MICU Heparin Infusion Protocol」照片，由使用者提供；以照片表格逐列人工轉錄（原表 B 表標題為 ACS & Stroke，本工具只用於 ACS）
@@ -40,6 +53,7 @@ node --test
 
 - `heparin.test.mjs`：原表 40／50／60／70 kg 案例
 - `heparin.verify.test.mjs`：逐條對照頁面規則表、所有切點、體重邊界、bolus 上限、單位換算與無效輸入
+- `lmwh.test.mjs`：Enoxaparin 劑量、Cockcroft-Gault、腎功能分級、體重與 BMI 提醒
 - `heparin.page.test.mjs`：用瀏覽器實際操作頁面（需要 Playwright；本機沒有時自動略過，GitHub Actions 會安裝後執行）
 - 驗算結果與待確認事項見 [TEST_REPORT.md](TEST_REPORT.md)
 
