@@ -19,6 +19,7 @@
 - Bolus 四捨五入至 500 U。上限：ACS 4,000 U（依 2025 ACC/AHA ACS Guideline）；VTE / PE 5,000 U（原表）。
 - 調整後流速不低於 0 mL/h。減量超過目前流速時，畫面顯示實際減少的量並註明依表應減多少，提醒新流速為 0（等同停止輸注），請醫師評估。
 - aPTT 有小數、落在表列兩列之間時（例如 75.5 秒），一律歸入較高的區間（較少 heparin，降低出血風險），畫面會提醒差距小時由醫師評估。
+- 新流速超過 25 U/kg/h 或 2,000 U/h（50 mL/h）時提醒請醫師／藥師確認，不擋計算。指引只規定起始速率上限（ACS 1,000 U/h），沒有規定調整後的速率上限。
 - 下次 aPTT：6–8 小時後（急診 q6h–q8h；暫停者自恢復輸注起算）。原表 ICU 為 q8h，連續兩次在治療範圍可改 QD。
 - ACS 治療範圍維持高醫 MICU/CCU protocol 的 50–75 秒。2025 ACC/AHA ACS 指引目標為 aPTT 60–80 秒，但未提供調整表；如需改用，須先修訂院內 protocol（構想見 [ACS_GUIDELINE_PROPOSAL.md](ACS_GUIDELINE_PROPOSAL.md)）。
 

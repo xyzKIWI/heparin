@@ -98,6 +98,7 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
           r.querySelector(".action-value").textContent,
         ]),
         warning: $("#rate-warning").classList.contains("show") ? $("#rate-warning").textContent : "",
+        newRateWarning: $("#new-rate-warning").classList.contains("show") ? $("#new-rate-warning").textContent : "",
         bandWarning: $("#band-warning").classList.contains("show") ? $("#band-warning").textContent : "",
         note: $("#result-note").textContent,
         copy: window.__copied ?? null,
@@ -228,7 +229,7 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
   });
 
   // 出處：[README] bolus 上限 5,000 U；畫面以千分位顯示
-  test("極重體重：bolus 封頂 5,000 U；新流速可超過輸入上限 200 mL/h（記錄目前行為）", async () => {
+  test("極重體重：bolus 封頂 5,000 U；新流速超過門檻時提醒（不擋計算）", async () => {
     const r = await run({ indication: "vte", weight: 300, aptt: 30, rate: 200 });
     assert.deepEqual(r.rows, [
       ["IV bolus", "5,000 U"],
@@ -236,8 +237,11 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
       ["新流速", "230 mL/h（9200 U/h）"],
       ["下次 aPTT", "6–8 小時後"],
     ]);
-    // 目前流速 8,000 U/h ÷ 300 kg = 26.7 U/kg/h > 25，出現提醒；提醒只看「目前」流速，不看新流速
+    // 目前流速 8,000 U/h ÷ 300 kg = 26.7 U/kg/h > 25，出現目前流速提醒
     assert.match(r.warning, /相當於 26\.7 U\/kg\/h/);
+    // 新流速 9,200 U/h ÷ 300 kg = 30.7 U/kg/h，也超過 2,000 U/h，出現新流速提醒（Kiwi 2026-11-02 決定）
+    assert.equal(r.newRateWarning, "請再確認：新流速 230 mL/h 相當於 30.7 U/kg/h、9,200 U/h，超過 25 U/kg/h 或 2,000 U/h。請醫師／藥師確認後執行。");
+    assert.match(r.copy, /新流速偏高：新流速 230 mL\/h 相當於 30\.7 U\/kg\/h、9,200 U\/h/);
   });
 
   // 出處：2025 ACC/AHA ACS Guideline UFH bolus max 4,000 IU（Kiwi 2026-11-02 決定 ACS 上限改為 4,000 U）；頁尾文字
@@ -249,6 +253,17 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
     assert.match(footer, /上限 ACS 4,000 U（依 2025 ACC\/AHA 指引）、VTE \/ PE 5,000 U/);
     // Kiwi 2026-11-02 決定：ACS 調整表維持院內 50–75 秒，頁尾註明指引目標 60–80 秒
     assert.match(footer, /本表依高醫 MICU\/CCU protocol（ACS 治療範圍 50–75 秒，約 1\.7–2\.6 × control）。2025 ACC\/AHA ACS 指引目標為 aPTT 60–80 秒/);
+  });
+
+  // 出處：Kiwi 2026-11-02 決定新流速偏高提醒門檻 > 25 U/kg/h 或 > 2,000 U/h
+  test("新流速提醒的門檻：剛好 25 U/kg/h、2,000 U/h 不提醒，超過就提醒", async () => {
+    assert.equal((await run({ indication: "acs", weight: 60, aptt: 60, rate: 37.5 })).newRateWarning, "");
+    assert.match((await run({ indication: "acs", weight: 60, aptt: 60, rate: 38 })).newRateWarning, /25\.3 U\/kg\/h/);
+    assert.equal((await run({ indication: "acs", weight: 100, aptt: 60, rate: 50 })).newRateWarning, "");
+    assert.match((await run({ indication: "acs", weight: 100, aptt: 60, rate: 50.5 })).newRateWarning, /2,020 U\/h/);
+    const normal = await run({ indication: "acs", weight: 60, aptt: 60, rate: 21 });
+    assert.equal(normal.newRateWarning, "");
+    assert.doesNotMatch(normal.copy, /新流速偏高/);
   });
 
   // 出處：index.html 第 271–280 行「超出常見劑量就出聲提醒（不擋計算）」，門檻 25 U/kg/h（頁面程式碼）
@@ -304,6 +319,7 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
     const footer = await page.textContent(".disc");
     assert.match(footer, /aPTT 有小數、落在表列兩列之間時（例如 75\.5 秒），一律歸入較高的區間（較少 heparin，降低出血風險）；差距很小時請醫師評估。/);
     assert.match(footer, /減量超過目前流速時新流速為 0（等同停止輸注），請醫師評估。/);
+    assert.match(footer, /新流速超過 25 U\/kg\/h 或 2,000 U\/h 時會提醒，請醫師／藥師確認（指引未規定調整後的速率上限）。/);
     assert.match(footer, /調整後 6–8 小時追蹤 aPTT（急診 q6h–q8h；原表為 q8h、連續兩次治療範圍可改 QD）/);
   });
 

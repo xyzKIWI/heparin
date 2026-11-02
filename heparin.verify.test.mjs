@@ -494,6 +494,27 @@ describe("4. 單位換算 U/kg/h → U/h → mL/h 與進位方式", () => {
     assert.deepEqual([normal.rateDeltaMlHour, normal.protocolDeltaMlHour, normal.clampedToZero, normal.reachesZero], [-3, -3, false, false]);
   });
 
+  // 出處：Kiwi 2026-11-02 決定新流速偏高時提醒：> 25 U/kg/h 或 > 2,000 U/h（院內範例起始速率上限；指引未規定調整後上限）
+  test("新流速偏高提醒：> 25 U/kg/h 或 > 2,000 U/h，剛好等於門檻不提醒", () => {
+    const cases = [
+      // [適應症, kg, aPTT, 目前 mL/h, 預期新流速, 預期提醒]
+      ["acs", 60, 60, 21, 21, false], // 14 U/kg/h
+      ["acs", 60, 60, 37.5, 37.5, false], // 1,500 U/h ÷ 60 = 25.0，剛好等於
+      ["acs", 60, 60, 38, 38, true], // 25.3 U/kg/h
+      ["acs", 100, 60, 50, 50, false], // 2,000 U/h，剛好等於；20 U/kg/h
+      ["acs", 100, 60, 50.5, 50.5, true], // 2,020 U/h
+      ["vte", 300, 30, 200, 230, true], // 9,200 U/h、30.7 U/kg/h
+      ["acs", 60, 80, 40, 37, false], // 目前 26.7 偏高，但減量後 24.7 U/kg/h，不提醒新流速
+      ["vte", 60, 30, 32, 38, true], // 加量後 1,520 U/h ÷ 60 = 25.3
+    ];
+    for (const [ind, kg, aptt, rate, newRate, high] of cases) {
+      const out = calc(ind, kg, aptt, rate);
+      assert.equal(out.newRateMlHour, newRate, `${ind} ${kg} ${aptt} ${rate}`);
+      assert.equal(out.highNewRate, high, `${ind} ${kg} ${aptt} ${rate}`);
+      assert.equal(out.newUnitsPerKgHour, (newRate * 40) / kg);
+    }
+  });
+
   // 出處：Kiwi 2026-11-02「臨床急診室 q6h–q8h 抽血追蹤」；[原表照片] f/u APTT q8h
   test("每個結果都帶有下次 aPTT 6–8 小時", () => {
     for (const indication of ["acs", "vte"]) {

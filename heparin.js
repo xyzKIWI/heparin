@@ -4,6 +4,11 @@ export const SOURCE_WEIGHTS_KG = [40, 50, 60, 70];
 // 下次 aPTT：急診 q6h–q8h（Kiwi 2026-11-02）；原表 ICU 為 q8h，連續兩次在治療範圍內可改 QD
 export const RECHECK_APTT_HOURS = "6–8";
 
+// 新流速偏高提醒（不擋計算，Kiwi 2026-11-02 決定）：超過 25 U/kg/h（與目前流速提醒同門檻）
+// 或超過 2,000 U/h（院內範例的起始速率上限，40 U/mL 時 = 50 mL/h）。指引沒有規定調整後的速率上限。
+export const HIGH_RATE_UNITS_PER_KG_HOUR = 25;
+export const HIGH_RATE_UNITS_HOUR = 2000;
+
 // 原表只列整數 aPTT。有小數、落在兩列之間時（例如 75.5 秒），一律歸入「較高」的區間，
 // 也就是給較少 heparin、降低出血風險（Kiwi 2026-11-02 決定）。因此每一列以「≤ 該列上限整數」判斷。
 
@@ -101,6 +106,10 @@ export function calculateAdjustment({ indication, weightKg, apttSeconds, current
     currentUnitsHour: currentRateMlHour * HEPARIN_CONCENTRATION,
     newRateMlHour,
     newUnitsHour: newRateMlHour * HEPARIN_CONCENTRATION,
+    newUnitsPerKgHour: (newRateMlHour * HEPARIN_CONCENTRATION) / weightKg,
+    highNewRate:
+      (newRateMlHour * HEPARIN_CONCENTRATION) / weightKg > HIGH_RATE_UNITS_PER_KG_HOUR ||
+      newRateMlHour * HEPARIN_CONCENTRATION > HIGH_RATE_UNITS_HOUR,
     notifyPhysician: band.notifyPhysician ?? false,
     isSourceWeight: SOURCE_WEIGHTS_KG.includes(weightKg),
   };
