@@ -5,6 +5,8 @@ export const PROTOCOLS = {
   acs: {
     label: "ACS",
     therapeuticRange: "50–75 秒",
+    // 依 2025 ACC/AHA ACS guideline UFH bolus 上限 4,000 U（Kiwi 2026-11-02 決定）
+    bolusCapUnits: 4000,
     bands: [
       { label: "< 40 秒", test: (value) => value < 40, bolusPerKg: 50, rateDeltaPerKg: 2 },
       { label: "40–49 秒", test: (value) => value < 50, rateDeltaPerKg: 2 },
@@ -16,6 +18,8 @@ export const PROTOCOLS = {
   },
   vte: {
     label: "VTE / PE",
+    // 原表 70 kg <35 秒：80 U/kg × 70 = 5,600 U，表列 5,000 U
+    bolusCapUnits: 5000,
     therapeuticRange: "60–79 秒",
     bands: [
       { label: "< 35 秒", test: (value) => value < 35, bolusPerKg: 80, rateDeltaPerKg: 4 },
@@ -33,8 +37,8 @@ function roundToIncrement(value, increment) {
   return Math.round((value + Number.EPSILON) / increment) * increment;
 }
 
-function roundBolus(units) {
-  return Math.min(5000, roundToIncrement(units, 500));
+function roundBolus(units, capUnits) {
+  return Math.min(capUnits, roundToIncrement(units, 500));
 }
 
 function assertFiniteInRange(name, value, min, max) {
@@ -52,7 +56,7 @@ export function calculateAdjustment({ indication, weightKg, apttSeconds, current
   assertFiniteInRange("currentRateMlHour", currentRateMlHour, 0, 200);
 
   const band = protocol.bands.find(({ test }) => test(apttSeconds));
-  const bolusUnits = band.bolusPerKg ? roundBolus(weightKg * band.bolusPerKg) : 0;
+  const bolusUnits = band.bolusPerKg ? roundBolus(weightKg * band.bolusPerKg, protocol.bolusCapUnits) : 0;
   const rawRateDelta = (weightKg * band.rateDeltaPerKg) / HEPARIN_CONCENTRATION;
   const rateDeltaMlHour = Math.sign(rawRateDelta) * roundToIncrement(Math.abs(rawRateDelta), 0.5);
   const newRateMlHour = roundToIncrement(

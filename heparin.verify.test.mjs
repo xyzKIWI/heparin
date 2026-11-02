@@ -58,7 +58,9 @@ const EXPECTED = {
 };
 
 const CONCENTRATION = 40; // [頁面濃度] 20,000 U / 500 mL
-const BOLUS_CAP = 5000; // [README]、[頁面註]
+// Bolus 上限：ACS 4,000 U（[2025 指引] loading dose max 4000 IU；Kiwi 2026-11-02 決定 ACS 上限都改為 4,000）
+//            VTE 5,000 U（[原表照片] 70 kg <35 秒：80 U/kg × 70 = 5,600 U，表列 5,000 U）
+const BOLUS_CAP = { acs: 4000, vte: 5000 };
 const BOLUS_STEP = 500; // [README]、[頁面註]
 
 // 整數 aPTT → 依 [頁面表] 找區間
@@ -79,12 +81,12 @@ function expectedDeltaMlHour(weightKg, perKg) {
   return Math.sign(perKg) * halves * 0.5;
 }
 
-// [README]：Bolus 四捨五入至 500 U，上限 5,000 U
-function expectedBolus(weightKg, perKg) {
+// [README]：Bolus 四捨五入至 500 U，上限 ACS 4,000 U、VTE / PE 5,000 U
+function expectedBolus(weightKg, perKg, cap) {
   if (!perKg) return 0;
   const tenths = Math.round(weightKg * 10);
   const steps = Math.floor((2 * tenths * perKg + 10 * BOLUS_STEP) / (20 * BOLUS_STEP));
-  return Math.min(BOLUS_CAP, steps * BOLUS_STEP);
+  return Math.min(cap, steps * BOLUS_STEP);
 }
 
 // [README]：調整後流速不低於 0 mL/h
@@ -97,7 +99,7 @@ function assertMatchesExpected(indication, weightKg, aptt, rate, band = expected
   const delta = expectedDeltaMlHour(weightKg, band.perKg);
   const ctx = `${indication} ${weightKg} kg aPTT ${aptt} rate ${rate}`;
   assert.equal(out.bandLabel, band.label, `${ctx} bandLabel`);
-  assert.equal(out.bolusUnits, expectedBolus(weightKg, band.bolusPerKg), `${ctx} bolusUnits`);
+  assert.equal(out.bolusUnits, expectedBolus(weightKg, band.bolusPerKg, BOLUS_CAP[indication]), `${ctx} bolusUnits`);
   assert.equal(out.holdMinutes, band.hold, `${ctx} holdMinutes`);
   assert.equal(out.notifyPhysician, band.notify, `${ctx} notifyPhysician`);
   assert.equal(out.rateDeltaMlHour, delta, `${ctx} rateDeltaMlHour`);
@@ -224,9 +226,9 @@ describe("1. 程式規則與頁面文字一致", () => {
   // 出處：[README]、[頁面註] 的文字敘述
   test("README 與頁尾的捨入／上限敘述存在且一致", () => {
     assert.match(README, /四捨五入至 0\.5 mL\/h/);
-    assert.match(README, /Bolus 四捨五入至 500 U，上限 5,000 U/);
+    assert.match(README, /Bolus 四捨五入至 500 U。上限：ACS 4,000 U（依 2025 ACC\/AHA ACS Guideline）；VTE \/ PE 5,000 U（原表）/);
     assert.match(README, /調整後流速不低於 0 mL\/h/);
-    assert.match(HTML, /流速四捨五入至 0\.5 mL\/h，bolus 四捨五入至 500 U 且最高 5,000 U/);
+    assert.match(HTML, /流速四捨五入至 0\.5 mL\/h，bolus 四捨五入至 500 U，上限 ACS 4,000 U（依 2025 ACC\/AHA 指引）、VTE \/ PE 5,000 U/);
   });
 
   // 出處：[頁面欄位] 與 heparin.js 的 assertFiniteInRange；兩邊範圍不一致時頁面會出現「通過驗證卻算不出來」
@@ -351,15 +353,18 @@ describe("3. 體重邊界與 bolus 上限", () => {
     assert.equal(acs.isSourceWeight, false);
   });
 
-  // 出處：[README]「上限 5,000 U」；計算點 = 5000 ÷ U/kg
-  test("bolus 上限 5,000 U：剛好到上限、超過上限都封頂", () => {
-    // ACS 50 U/kg：100 kg 剛好 5,000；101 kg 以上封頂
-    assert.equal(calc("acs", 99, 30, 20).bolusUnits, 5000); // 4950 → 四捨五入 5000
-    assert.equal(calc("acs", 94.9, 30, 20).bolusUnits, 4500); // 4745 → 4500
-    assert.equal(calc("acs", 95, 30, 20).bolusUnits, 5000); // 4750 → 5000（剛好一半，進位）
-    assert.equal(calc("acs", 100, 30, 20).bolusUnits, 5000);
-    assert.equal(calc("acs", 150, 30, 20).bolusUnits, 5000); // 7500 → 封頂
-    assert.equal(calc("acs", 300, 30, 20).bolusUnits, 5000); // 15000 → 封頂
+  // 出處：ACS 上限 4,000 U：[2025 指引]（Kiwi 2026-11-02 決定）；VTE 上限 5,000 U：[原表照片]、[README]
+  // 計算點 = 上限 ÷ U/kg
+  test("bolus 上限 ACS 4,000 U、VTE 5,000 U：剛好到上限、超過上限都封頂", () => {
+    // ACS 50 U/kg：80 kg 剛好 4,000；75 kg（3,750）起四捨五入到 4,000
+    assert.equal(calc("acs", 70, 30, 20).bolusUnits, 3500); // 原表 70 kg = 3,500 U，不受影響
+    assert.equal(calc("acs", 74.9, 30, 20).bolusUnits, 3500); // 3745 → 3500
+    assert.equal(calc("acs", 75, 30, 20).bolusUnits, 4000); // 3750 → 4000（剛好一半，進位）
+    assert.equal(calc("acs", 80, 30, 20).bolusUnits, 4000);
+    assert.equal(calc("acs", 85, 30, 20).bolusUnits, 4000); // 4250 → 四捨五入 4500 → 封頂 4000
+    assert.equal(calc("acs", 95, 30, 20).bolusUnits, 4000); // 4750 → 5000 → 封頂 4000
+    assert.equal(calc("acs", 150, 30, 20).bolusUnits, 4000); // 7500 → 封頂
+    assert.equal(calc("acs", 300, 30, 20).bolusUnits, 4000); // 15000 → 封頂
     // VTE 80 U/kg：62.5 kg 剛好 5,000
     assert.equal(calc("vte", 59.3, 30, 20).bolusUnits, 4500); // 4744 → 4500
     assert.equal(calc("vte", 59.4, 30, 20).bolusUnits, 5000); // 4752 → 5000
@@ -415,7 +420,7 @@ describe("4. 單位換算 U/kg/h → U/h → mL/h 與進位方式", () => {
         for (let t = 200; t <= 3000; t += 1) {
           const w = t / 10;
           const out = calc(indication, w, aptt, 100);
-          assert.equal(out.bolusUnits, expectedBolus(w, band.bolusPerKg), `${indication} ${band.label} ${w} kg bolus`);
+          assert.equal(out.bolusUnits, expectedBolus(w, band.bolusPerKg, BOLUS_CAP[indication]), `${indication} ${band.label} ${w} kg bolus`);
           assert.equal(out.rateDeltaMlHour, expectedDeltaMlHour(w, band.perKg), `${indication} ${band.label} ${w} kg delta`);
           assert.equal(out.newRateMlHour, expectedNewRate(100, out.rateDeltaMlHour));
           assert.equal(out.newUnitsHour, out.newRateMlHour * 40);
@@ -539,7 +544,7 @@ describe("6. 暫停與加減速流程", () => {
 
 // ===========================================================================
 describe("7. 初始 bolus 與初始速率（頁面文字對照公開指引）", () => {
-  // 本工具不計算初始 bolus／初始速率，只在「GlobalRPH 起始劑量比較」表列文字。
+  // 本工具不計算初始 bolus／初始速率，只在「起始劑量參考」表列文字。
   test("計算模組沒有初始劑量模式（只做 aPTT 調整）", () => {
     const out = calc("acs", 60, 60, 21);
     assert.equal("initialBolusUnits" in out, false);
@@ -547,10 +552,9 @@ describe("7. 初始 bolus 與初始速率（頁面文字對照公開指引）", 
   });
 
   // 出處：[2025 指引] Section 4.4：UFH loading dose 60 IU/kg (max 4000 IU)，initial infusion 12 IU/kg/h (max 1000 IU/h)
-  // 頁面 GlobalRPH 欄寫「Bolus 60 U/kg（max 5,000 U）」。GlobalRPH 頁面的預設值放在表單欄位內，
-  // 以文字擷取無法讀到，故 GlobalRPH 本身未找到可驗證範例；與 2025 指引比對則上限不同。
-  test("ACS 初始 bolus 上限：頁面 5,000 U vs 2025 指引 4,000 IU", { todo: "與 2025 ACC/AHA 指引不一致，已列入 TEST_REPORT.md，由 Kiwi 判斷" }, () => {
-    assert.match(HTML, /Bolus 60 U\/kg（max 4,000 U）/);
+  // 原本頁面寫 max 5,000 U，Kiwi 2026-11-02 決定依 2025 指引改為 4,000 U。
+  test("ACS 初始 bolus 上限：頁面 4,000 U，與 2025 指引一致", () => {
+    assert.match(HTML, /Bolus 60 U\/kg（max 4,000 U）；12 U\/kg\/h（max 1,000 U\/h）（2025 ACC\/AHA ACS Guideline）/);
   });
 
   test("ACS 初始速率：頁面 12 U/kg/h（max 1,000 U/h）與 2025 指引一致", () => {
@@ -558,8 +562,8 @@ describe("7. 初始 bolus 與初始速率（頁面文字對照公開指引）", 
   });
 
   // 出處：[2025 指引] Section 4.4：aPTT 治療範圍 60–80 s；頁面（高醫 protocol）ACS 為 50–75 秒。
-  // README 寫 2025 指引用於「ACS 起始劑量與目標範圍比對」，兩者不同，列入報告。
-  test("ACS 治療範圍：頁面 50–75 秒 vs 2025 指引 60–80 秒", { todo: "與 2025 ACC/AHA 指引不一致，已列入 TEST_REPORT.md，由 Kiwi 判斷" }, () => {
+  // 治療範圍要改需要新的 aPTT 區間切點，指引沒有提供 nomogram，待 Kiwi 決定，列入報告。
+  test("ACS 治療範圍：頁面 50–75 秒 vs 2025 指引 60–80 秒", { todo: "與 2025 ACC/AHA 指引不一致，待 Kiwi 決定是否改區間" }, () => {
     assert.equal(calc("acs", 60, 60, 21).therapeuticRange, "60–80 秒");
   });
 

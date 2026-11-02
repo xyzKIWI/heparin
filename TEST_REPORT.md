@@ -2,17 +2,17 @@
 
 - 驗算日期：2026-11-02
 - 範圍：`heparin.js`（計算）與 `index.html`（畫面呈現）
-- 原則：**只補測試、不改任何劑量、濃度、區間切點、上限、暫停時間或臨床文字**。下列問題都只記錄，由 Kiwi 判斷是否要改。
-- 結果：共 131 項，**129 通過、2 項標為 `todo`（與公開指引不一致）、0 失敗**
+- 原則：測試階段只補測試、不改臨床內容；問題記錄在本報告，由 Kiwi 判斷。之後**依 Kiwi 決定做了一項臨床修改：ACS bolus 上限 5,000 U → 4,000 U**（見「Kiwi 決定紀錄」）
+- 結果：共 132 項，**131 通過、1 項標為 `todo`（ACS 治療範圍，待 Kiwi 決定）、0 失敗**
 - **原表照片 52 格調整值全部與程式一致**（見第一節第 1 點）
 
 | 測試檔 | 內容 | 項數 |
 |---|---|---|
 | `heparin.test.mjs` | 既有測試：原表 40／50／60／70 kg 案例 | 6 |
-| `heparin.verify.test.mjs` | 新增：原表照片逐格比對、規則表比對、切點、體重、上限、換算、無效輸入、暫停流程 | 96（含 2 todo） |
-| `heparin.page.test.mjs` | 新增：用 Chromium 實際填表、按「計算調整」、讀畫面與「複製結果」文字 | 29 |
+| `heparin.verify.test.mjs` | 新增：原表照片逐格比對、規則表比對、切點、體重、上限、換算、無效輸入、暫停流程 | 96（含 1 todo） |
+| `heparin.page.test.mjs` | 新增：用 Chromium 實際填表、按「計算調整」、讀畫面與「複製結果」文字 | 30 |
 
-另外做了「故意改錯」檢查：暫時把 ACS 75 秒切點、VTE bolus 係數、bolus 上限、0 mL/h 下限、捨入方式、濃度、暫停時間各改錯一次，7 種錯誤都會讓測試失敗（之後已還原，`heparin.js` 沒有任何變動）。
+另外做了「故意改錯」檢查：暫時把 ACS 75 秒切點、VTE bolus 係數、bolus 上限、0 mL/h 下限、捨入方式、濃度、暫停時間各改錯一次，7 種錯誤都會讓測試失敗（之後已還原）。
 
 ## 出處說明
 
@@ -23,14 +23,15 @@
 | 頁面濃度 | `index.html` 第 100 行「Heparin 20,000 U / NS 500 mL ＝ 40 U/mL」 |
 | 頁面欄位 | `index.html` 輸入欄位的 min／max／step（第 114–122 行） |
 | README | `README.md`「計算規則」段落 |
-| 原表照片 | 「高醫內科加護病房 靜脈注射抗凝血藥物劑量調整指引 KMUH MICU Heparin Infusion Protocol」照片，A. Heparin for Thromboembolism、B. Heparin for ACS & Stroke。Kiwi 於 2026-11-02 提供，**照片未放入 repo**，數值逐格轉錄在 `heparin.verify.test.mjs` 第 0 節 |
+| 原表照片 | 「高醫內科加護病房 靜脈注射抗凝血藥物劑量調整指引 KMUH MICU Heparin Infusion Protocol」照片（MICU 與 CCU 共用），A. Heparin for Thromboembolism、B. Heparin for ACS & Stroke。Kiwi 於 2026-11-02 提供，**照片未放入 repo**，數值逐格轉錄在 `heparin.verify.test.mjs` 第 0 節 |
 | 原表測試 | `heparin.test.mjs` 既有測試的 40／50／60／70 kg 案例，已與原表照片核對一致 |
 | 2025 指引 | [2025 ACC/AHA/ACEP/NAEMSP/SCAI ACS Guideline](https://www.ahajournals.org/doi/10.1161/CIR.0000000000001309)，Section 4.4 Parenteral Anticoagulation 表格 |
+| 2026 PE 指引 | [2026 AHA/ACC/ACCP/ACEP/CHEST/SCAI/SHM/SIR/SVM/SVN Guideline for Acute Pulmonary Embolism](https://www.ahajournals.org/doi/10.1161/CIR.0000000000001415)（Circulation 2026） |
 | Raschke 1993 | Raschke RA, et al. *Ann Intern Med* 1993;119(9):874-81（PubMed 8214998，[doi:10.7326/0003-4819-119-9-199311010-00002](https://doi.org/10.7326/0003-4819-119-9-199311010-00002)） |
 
 ## 規則整理（依頁面表與 README）
 
-濃度 40 U/mL。mL/h 增減 = 體重 × U/kg/h ÷ 40，四捨五入至 0.5 mL/h；bolus = 體重 × U/kg，四捨五入至 500 U，上限 5,000 U；新流速不低於 0 mL/h。
+濃度 40 U/mL。mL/h 增減 = 體重 × U/kg/h ÷ 40，四捨五入至 0.5 mL/h；bolus = 體重 × U/kg，四捨五入至 500 U，上限 **ACS 4,000 U**、**VTE / PE 5,000 U**；新流速不低於 0 mL/h。
 
 **ACS**（治療範圍 50–75 秒）
 
@@ -55,7 +56,7 @@
 | 90–120 | – | 30 分 | −2 U/kg/h | |
 | > 120 | – | 60 分 | −3 U/kg/h | 通知醫師 |
 
-- **初始 bolus／初始速率**：原表照片有「Initial dosing」列，但本工具**不計算**，頁面只在「GlobalRPH 起始劑量比較」表列出文字（ACS 60 U/kg、12 U/kg/h；VTE 80 U/kg、18 U/kg/h）。原表的初始劑量見第三節第 9 點。
+- **初始 bolus／初始速率**：原表照片有「Initial dosing」列，但本工具**不計算**，頁面只在「起始劑量參考」表列出文字（ACS 60 U/kg（max 4,000 U）、12 U/kg/h（max 1,000 U/h），出自 2025 指引；VTE 80 U/kg、18 U/kg/h，出自 Raschke／GlobalRPH）。原表的初始劑量見第三節第 9 點。
 - **重抽 aPTT 時間**：原表照片頁尾「f/u APTT q8h（若連續兩次 APTT 均在治療範圍內，可以改 QD 監測）；f/u Hb and Plt regularly (initially, QD)」。頁面只在頁尾文字寫「原表為 q8h、連續兩次治療範圍可改 QD，並追蹤 Hb 與 platelet」，和原表一致，但結果卡不顯示。
 
 ## 一、通過的項目
@@ -71,7 +72,7 @@
 5. **單調性**：aPTT 每 0.1 秒掃到 300 秒，增減量不會隨 aPTT 升高而變多、暫停不會變短。（出處：頁面表）
 6. **原表 40／50／60／70 kg 案例**：13 個既有案例在計算與畫面上都重現，數值與原表照片相同。（出處：原表照片、原表測試）
 7. **體重邊界**：極輕 20 kg（ACS bolus 1,000 U、+1 mL/h）、一般體重、極重 300 kg 都正確；19.9 kg、300.1 kg 被拒絕。（出處：頁面欄位、頁面表、README）
-8. **Bolus 上限 5,000 U**：ACS 從 95 kg（4,750 → 5,000）起封頂；VTE 80 U/kg 從 59.4 kg 起、VTE 40 U/kg 從 118.8 kg 起封頂，300 kg 也只給 5,000 U。（出處：README、頁面註；原表照片 VTE 70 kg <35 秒 = 5,000 U 支持此上限）
+8. **Bolus 上限**：ACS 4,000 U，從 75 kg（3,750 → 4,000）起封頂，原表 40–70 kg 的 2,000–3,500 U 不受影響；VTE 5,000 U，80 U/kg 從 59.4 kg 起、40 U/kg 從 118.8 kg 起封頂。300 kg 也只給到上限。畫面與頁尾文字都已確認。（出處：ACS 為 2025 指引＋Kiwi 決定；VTE 為原表照片 70 kg <35 秒 = 5,000 U、README）
 9. **單位換算與進位**：20.0–300.0 kg 每 0.1 kg × 每個區間（共約 3.6 萬組）用整數精確運算比對，bolus、mL/h 增減、新流速、U/h 全部吻合；結果一定是 0.5 mL/h 與 500 U 的倍數。剛好一半時進位（2.25 → 2.5；減 3.75 → 減 4、減 5.25 → 減 5.5，與原表照片 50 kg、70 kg 相同）。（出處：README、原表照片）
 10. **需要調整時不會被捨入成「不調整」**：最輕 20 kg 最小變動也有 1 mL/h。（出處：頁面表、頁面欄位）
 11. **下限 0 mL/h**：減量超過目前流速時新流速為 0。（出處：README）
@@ -79,20 +80,18 @@
 13. **頁面欄位範圍和計算模組一致**：體重 20–300、aPTT 1–300、流速 0–200，不會出現「表單通過、計算卻失敗」。（出處：頁面欄位）
 14. **暫停與加減速流程**：低於範圍（藍色，bolus＋加速）、範圍內（綠色，不調整）、高於範圍（藍色，減速）、暫停 30 分（橘色，標題「先暫停 30 分鐘」→ 暫停輸注 → 流速調整 → 新流速）、暫停 60 分＋通知醫師（紅色，多一列「必要處置：通知醫師」），ACS 與 VTE 都和頁面表一致，「複製結果」文字也一致。（出處：頁面表）
 15. **非原表體重提醒**：65.5 kg 會顯示「原始表未列 65.5 kg；本結果依 U/kg 係數推算」。（出處：README）
-16. **ACS 初始速率文字**：頁面寫 12 U/kg/h（max 1,000 U/h），與 2025 指引相同。VTE 初始 80 U/kg、18 U/kg/h 與 Raschke 1993 相同。（這兩列是頁面的 GlobalRPH 對照文字；高醫原表自己的初始劑量和它們不完全相同，見第三節第 9 點）
+16. **起始劑量參考文字**：ACS 60 U/kg（max 4,000 U）、12 U/kg/h（max 1,000 U/h），與 2025 指引相同；VTE 80 U/kg、18 U/kg/h 與 Raschke 1993 相同。（高醫原表自己的初始劑量和它們不完全相同，見第三節第 9 點）
 
 ## 二、和出處不一致的地方（測試標為 `todo`）
 
-程式和原表照片、repo 內出處（頁面表、README、原表測試）**沒有發現不一致**。以下兩項是**頁面文字和公開指引不同**：
+程式和原表照片、repo 內出處（頁面表、README、原表測試）**沒有發現不一致**。原本有兩項頁面文字和公開指引不同，第 1 項已依 Kiwi 決定修正，剩第 2 項待決定：
 
-| # | 項目 | 輸入 | 預期（出處） | 實際（頁面） | 出處 |
-|---|---|---|---|---|---|
-| 1 | ACS 初始 bolus 上限 | 「GlobalRPH 起始劑量比較」表 ACS 列 | 60 IU/kg，**max 4,000 IU** | 60 U/kg，**max 5,000 U** | 2025 指引 Section 4.4：“Loading dose 60 IU/kg (max 4000 IU)” |
-| 2 | ACS aPTT 治療範圍 | 任一 ACS 計算的治療範圍標示 | **60–80 秒** | **50–75 秒** | 2025 指引 Section 4.4：“adjusted to therapeutic aPTT range of 60-80 s” |
+| # | 項目 | 輸入 | 預期（出處） | 實際（頁面） | 出處 | 狀態 |
+|---|---|---|---|---|---|---|
+| 1 | ACS 初始 bolus 上限 | 「起始劑量參考」表 ACS 列 | 60 IU/kg，**max 4,000 IU** | 原為 max 5,000 U，**已改為 max 4,000 U** | 2025 指引 Section 4.4：“Loading dose 60 IU/kg (max 4000 IU)” | 已修正，測試改為一般測試 |
+| 2 | ACS aPTT 治療範圍 | 任一 ACS 計算的治療範圍標示 | **60–80 秒** | **50–75 秒** | 2025 指引 Section 4.4：“adjusted to therapeutic aPTT range of 60-80 s” | `todo`，待 Kiwi 決定 |
 
-說明：
-- 第 1 項那欄的標題是「GlobalRPH」。GlobalRPH 的預設值放在表單欄位裡，文字擷取讀不到，所以**無法確認 GlobalRPH 本身寫 4,000 還是 5,000**；但 README 也把 2025 指引列為「ACS 起始劑量」的比對來源，兩者不同，值得確認。本工具不計算初始劑量，不影響計算結果。
-- 第 2 項的 50–75 秒來自高醫 protocol，aPTT 秒數本來就隨各院試劑不同。README 寫 2025 指引是用來「目標範圍比對」，但兩者不同，頁面上沒有說明差異。是否需要加註請 Kiwi 判斷。
+第 2 項說明：50–75 秒來自高醫 protocol，aPTT 秒數會因各院試劑不同而有差異。2025 指引只給目標範圍，**沒有提供 aPTT 調整 nomogram**。如果要改成 60–80 秒，ACS 的 6 個區間切點（<40、40–49、50–75、76–85、86–100、>100）都要重新訂。這一步需要 Kiwi 提供或決定新的切點，本次沒有修改。
 
 ## 三、沒有封頂保護或邊界行為可疑的地方
 
@@ -100,9 +99,10 @@
    - 輸入：VTE、300 kg、aPTT 30 秒、目前 200 mL/h
    - 實際：+30 mL/h → **230 mL/h（9,200 U/h）**，超過頁面自己的輸入上限 200 mL/h，畫面沒有任何對新流速的提醒
    - 增減一律用實際體重計算，沒有肥胖病人的劑量體重上限。README 與頁面都沒有寫流速上限，原表是否有規定**未找到可驗證範例**
-2. **Bolus 上限 5,000 U 套用到 70 kg 以上的推算**
-   - 原表照片只有一格看得出上限：VTE 70 kg <35 秒寫 5,000 U（80 U/kg × 70 = 5,600 U）。所以 VTE 80 U/kg 封頂 5,000 U **有原表依據**
-   - 原表最重只列 70 kg。ACS 50 U/kg（≥ 95 kg）、VTE 40 U/kg（≥ 118.8 kg）也封頂 5,000 U，是程式依 README 的推算，原表沒有這麼重的範例。例如 VTE 100 kg、aPTT 40 秒：40 U/kg 應為 4,000 U，沒有封頂；VTE 150 kg、aPTT 40 秒：6,000 U → 給 5,000 U。這部分**未找到可驗證範例**
+2. **Bolus 上限套用到 70 kg 以上的推算**
+   - ACS 4,000 U：依 Kiwi 決定採 2025 指引的 loading dose 上限，也套用在 aPTT < 40 秒的追加 bolus（50 U/kg）。指引本身沒有規定追加 bolus 的上限
+   - VTE 5,000 U：原表照片只有一格看得出上限，就是 70 kg <35 秒寫 5,000 U（80 U/kg × 70 = 5,600 U），所以 80 U/kg 封頂 5,000 U **有原表依據**
+   - VTE 40 U/kg 在 ≥ 118.8 kg 也封頂 5,000 U，這是程式依 README 推算的，原表最重只列 70 kg。例如 VTE 150 kg、aPTT 40 秒：6,000 U → 給 5,000 U。這部分**未找到可驗證範例**
 3. **小數 aPTT 落在兩個整數之間時，ACS 和 VTE 的歸區方向不同**（原表只列整數，**未找到可驗證範例**）
 
    | 輸入 | 目前歸在 | 影響 |
@@ -131,16 +131,16 @@
 
    | 原表 Initial dosing | 40 kg | 50 kg | 60 kg | 70 kg |
    |---|---|---|---|---|
-   | Thromboembolism | bolus 3000U → 18 mL/hr | bolus 4000U → 22 mL/hr | bolus 5000U → 26 mL/hr | bolus 5000U → 26 或 28 mL/hr（照片模糊） |
+   | Thromboembolism | bolus 3000U → 18 mL/hr | bolus 4000U → 22 mL/hr | bolus 5000U → 26 mL/hr | bolus 5000U → 28 mL/hr（Kiwi 確認） |
    | ACS & Stroke | bolus 2500U → 14 mL/hr | bolus 3000U → 17 mL/hr | bolus 4000U → 21 mL/hr | bolus 4500U → 24 mL/hr |
 
-   - 原表 ACS 初始速率換算約 **14 U/kg/h**（14 mL/hr × 40 ÷ 40 kg = 14；24 × 40 ÷ 70 ≈ 13.7）。頁面 GlobalRPH 欄和 2025 指引都是 **12 U/kg/h**
-   - 原表 ACS 70 kg bolus **4,500 U**，超過 2025 指引的上限 **4,000 IU**（60 IU/kg × 70 = 4,200，也會被 4,000 封頂）
-   - 原表 Thromboembolism 初始速率只有 40 kg 剛好是 18 U/kg/h；60 kg 26 mL/hr ≈ 17.3 U/kg/h，70 kg 約 15–16 U/kg/h。初始 bolus 和初始速率都無法用單一 U/kg 係數完整推回原表數字
+   - 原表 ACS 初始速率換算約 **14 U/kg/h**（14 mL/hr × 40 ÷ 40 kg = 14；24 × 40 ÷ 70 ≈ 13.7）。頁面起始劑量參考和 2025 指引都是 **12 U/kg/h**
+   - 原表 ACS 70 kg 初始 bolus **4,500 U**，超過 Kiwi 決定採用的 4,000 U 上限（60 U/kg × 70 = 4,200，也會被 4,000 封頂）。本工具不計算初始劑量，所以不受影響；但紙本原表若繼續使用，這一格和新的上限不一致
+   - 原表 Thromboembolism 初始速率只有 40 kg 剛好是 18 U/kg/h；60 kg 26 mL/hr ≈ 17.3 U/kg/h，70 kg 28 mL/hr = 16 U/kg/h。初始 bolus 和初始速率都無法用單一 U/kg 係數完整推回原表數字
    - 如果之後要在頁面加入初始劑量，需要先由 Kiwi 決定依原表逐格查表，還是依 U/kg 係數推算
-10. **原表標題和頁面／README 用詞不同**（文字，不影響計算）
-    - 原表照片標題是「高醫**內科加護病房**……KMUH **MICU** Heparin Infusion Protocol」。README 的資料來源寫「高醫**心臟內科加護病房**」（#4 依 Kiwi 定案修改）。照片上看到的是內科加護病房，請 Kiwi 再確認
-    - 原表 B 表是「Heparin for **ACS & Stroke**」，頁面只寫 ACS。中風病人是否也適用這套，頁面上沒有說明
+10. **原表標題用詞**（已依 Kiwi 說明處理）
+    - 原表為 MICU 與 CCU 共用，README 資料來源已改為「高醫內科加護病房（MICU）與心臟內科加護病房（CCU）共用」
+    - 原表 B 表是「ACS & Stroke」。Kiwi 說明 stroke 目前不會用 heparin 治療，頁面原本就只寫 ACS，沒有 stroke 字樣需要拿掉；README 註明本工具只用於 ACS
 
 ## 四、找不到可驗證範例的項目
 
@@ -153,7 +153,25 @@
 | 高流速提醒門檻 25 U/kg/h | 只有頁面程式碼 |
 | 輸入範圍 20–300 kg、aPTT 1–300 秒、流速 0–200 mL/h | 只有頁面欄位設定 |
 | GlobalRPH 預設值（ACS bolus 上限等） | GlobalRPH 頁面以表單欄位呈現，文字擷取讀不到 |
-| 原表照片 70 kg Thromboembolism 初始速率 | 照片模糊，26 或 28 mL/hr |
+
+## VTE / PE 是否有新指引
+
+有。**2026 AHA/ACC/ACCP/ACEP/CHEST/SCAI/SHM/SIR/SVM/SVN Guideline for the Evaluation and Management of Acute Pulmonary Embolism in Adults**（Circulation 2026，[doi:10.1161/CIR.0000000000001415](https://www.ahajournals.org/doi/10.1161/CIR.0000000000001415)）是 AHA/ACC 第一份急性 PE 指引。和這個工具有關的重點：
+
+- **需要初始注射型抗凝時，建議 LMWH 優於 UFH**（Top take-home message 第 7 點；Section 4.2.1）。理由是 LMWH 較快達到並維持治療範圍、復發 VTE 較少、HIT 較少
+- LMWH 的監測建議用 anti-Xa，肥胖、腎功能不全另有說明
+- 在我讀得到的部分，**沒有看到新的 UFH 體重劑量或 aPTT nomogram**。指引原文很長，自動擷取只讀到前半段，UFH 劑量細節沒有完整核對。Medscape 依此指引整理的治療章節，UFH 仍寫 80 U/kg（或 5,000 U）bolus、18 U/kg/h（或 1,300 U/h），和 Raschke 1993、原表一致
+
+結論：目前沒有證據需要改 VTE / PE 的 UFH 調整表；新指引改變的是「先選 LMWH 還是 UFH」。是否在頁面加註「PE 初始治療一般建議 LMWH，UFH 用於預期再灌流、腎功能差、出血風險高需快速逆轉等情況」，請 Kiwi 決定（這句是常見臨床用法的整理，不是指引原文）。
+
+## Kiwi 決定紀錄（2026-11-02）
+
+| # | 決定 | 處理 |
+|---|---|---|
+| 1 | 原表為 CCU 與 MICU 共用 | README 資料來源改寫 |
+| 2 | ACS 依最新指引修正，上限都改為 4,000 | `heparin.js` ACS bolus 上限 5,000 → 4,000 U（含 aPTT < 40 秒追加 bolus）；頁面「起始劑量參考」ACS 列改為 max 4,000 U 並標註 2025 ACC/AHA；頁尾與 README 寫明兩種上限；資料校對日期改為 2026-11-02。原表 40–70 kg 的 ACS 追加 bolus（2,000–3,500 U）都低於 4,000，不受影響。受影響的是 ≥ 75 kg（例如 90 kg：原本 4,500 U → 現在 4,000 U） |
+| 3 | Stroke 不使用 heparin，可拿掉 | 頁面原本就沒有 stroke 字樣；README 註明只用於 ACS |
+| 4 | 原表 70 kg Thromboembolism 初始速率為 28 mL/hr | 報告更新（本工具不計算初始劑量） |
 
 ## 如何執行
 

@@ -231,6 +231,15 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
     assert.match(r.warning, /相當於 26\.7 U\/kg\/h/);
   });
 
+  // 出處：2025 ACC/AHA ACS Guideline UFH bolus max 4,000 IU（Kiwi 2026-11-02 決定 ACS 上限改為 4,000 U）；頁尾文字
+  test("ACS bolus 封頂 4,000 U，頁尾寫明兩種上限", async () => {
+    const r = await run({ indication: "acs", weight: 90, aptt: 30, rate: 30 }); // 50×90 = 4,500 → 4,000
+    assert.deepEqual(r.rows[0], ["IV bolus", "4,000 U"]);
+    assert.match(r.copy, /Bolus 4000 U/);
+    const footer = await page.textContent(".disc");
+    assert.match(footer, /上限 ACS 4,000 U（依 2025 ACC\/AHA 指引）、VTE \/ PE 5,000 U/);
+  });
+
   // 出處：index.html 第 271–280 行「超出常見劑量就出聲提醒（不擋計算）」，門檻 25 U/kg/h（頁面程式碼）
   test("目前流速換算超過 25 U/kg/h 時提醒，剛好 25 不提醒", async () => {
     const over = await run({ indication: "acs", weight: 60, aptt: 60, rate: 40 }); // 1600/60 = 26.7

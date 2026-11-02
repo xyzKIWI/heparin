@@ -16,15 +16,15 @@
 - aPTT 分段、bolus、暫停與 U/kg/h 增減均依使用者提供的高醫 ICU protocol。
 - 原始表列出 40、50、60、70 kg。本工具對其他體重依表格底層的 U/kg 係數推算。
 - 流速以 40 U/mL 換算，四捨五入至 0.5 mL/h。
-- Bolus 四捨五入至 500 U，上限 5,000 U。
+- Bolus 四捨五入至 500 U。上限：ACS 4,000 U（依 2025 ACC/AHA ACS Guideline）；VTE / PE 5,000 U（原表）。
 - 調整後流速不低於 0 mL/h。
 
 ## 資料來源與校對
 
-- 高醫心臟內科加護病房「KMUH MICU Heparin Infusion Protocol」照片，由使用者提供；以照片表格逐列人工轉錄
-- [2025 ACC/AHA/ACEP/NAEMSP/SCAI ACS Guideline](https://www.ahajournals.org/doi/10.1161/CIR.0000000000001309)：ACS 起始劑量與目標範圍比對
+- 高醫內科加護病房（MICU）與心臟內科加護病房（CCU）共用之「KMUH MICU Heparin Infusion Protocol」照片，由使用者提供；以照片表格逐列人工轉錄（原表 B 表標題為 ACS & Stroke，本工具只用於 ACS）
+- [2025 ACC/AHA/ACEP/NAEMSP/SCAI ACS Guideline](https://www.ahajournals.org/doi/10.1161/CIR.0000000000001309)：ACS 起始劑量與 bolus 上限 4,000 U
 - [GlobalRPH Heparin Dosing Calculator](https://globalrph.com/medcalcs/heparin-dosing-calculator-custom-options-available/)：起始體重式劑量與介面參考
-- 資料最後校對：2026-08-18
+- 資料最後校對：2026-11-02
 - 校對方式：逐列對照原始照片，並以 40／50／60／70 kg 測試案例驗證計算輸出
 
 ## 驗證
