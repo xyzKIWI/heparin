@@ -61,7 +61,7 @@
   .actions{display:grid; gap:9px; padding:16px 18px 4px;}
   .action{display:flex; justify-content:space-between; align-items:baseline; gap:16px; border-bottom:1px solid #edf1f5; padding:0 0 9px;}
   .action:last-child{border:0;}
-  .action-label{color:var(--muted); font-size:.86rem;}
+  .action-label{color:var(--muted); font-size:.86rem; white-space:nowrap;}
   .action-value{text-align:right; font-weight:750; font-size:1.03rem;}
   .rate-main{font-size:1.22rem; color:var(--navy);}
   .rate-warning{display:none; margin:10px 18px 0; padding:10px 12px; border-radius:8px;
@@ -133,7 +133,9 @@
       <div class="range" id="result-range"></div>
     </div>
     <div class="actions" id="result-actions"></div>
+    <p class="rate-warning" id="band-warning" role="alert"></p>
     <p class="rate-warning" id="rate-warning" role="alert"></p>
+    <p class="rate-warning" id="new-rate-warning" role="alert"></p>
     <div class="result-note" id="result-note"></div>
     <button class="copy" id="copy-result" type="button">複製結果</button>
   </section>
@@ -163,13 +165,13 @@
   </details>
 
   <details>
-    <summary>GlobalRPH 起始劑量比較</summary>
+    <summary>起始劑量參考</summary>
     <div class="details-body">
       <table>
-        <thead><tr><th>方案</th><th>GlobalRPH</th><th>本頁用途</th></tr></thead>
+        <thead><tr><th>方案</th><th>起始劑量（出處）</th><th>本頁用途</th></tr></thead>
         <tbody>
-          <tr><td>ACS</td><td>Bolus 60 U/kg（max 5,000 U）；12 U/kg/h（max 1,000 U/h）</td><td rowspan="2">僅作起始劑量對照；本頁 aPTT 調整以高醫 protocol 為準。</td></tr>
-          <tr><td>VTE / PE</td><td>標準 Raschke 80 U/kg；18 U/kg/h。頁面另可自訂 70/15 及上限。</td></tr>
+          <tr><td>ACS</td><td>Bolus 60 U/kg（max 4,000 U）；12 U/kg/h（max 1,000 U/h）（2025 ACC/AHA ACS Guideline；高醫藥典相同）</td><td rowspan="2">僅作起始劑量對照；本頁 aPTT 調整以高醫 protocol 為準。</td></tr>
+          <tr><td>VTE / PE</td><td>標準 Raschke 80 U/kg；18 U/kg/h（GlobalRPH；另可自訂 70/15 及上限）。</td></tr>
         </tbody>
       </table>
       <ul class="source-list">
@@ -181,8 +183,11 @@
 
   <div class="disc">
     <b>臨床安全：</b>本工具依使用者提供之高醫 ICU protocol 轉換，僅供醫療專業人員核算，不是醫囑。
-    原表列 40／50／60／70 kg；其他體重依其 U/kg 係數推算，流速四捨五入至 0.5 mL/h，bolus 四捨五入至 500 U 且最高 5,000 U，須再次人工核對。
-    調整後依院內流程追蹤 aPTT；原表為 q8h、連續兩次治療範圍可改 QD，並追蹤 Hb 與 platelet。（資料校對：2026-08-18）
+    原表列 40／50／60／70 kg；其他體重依其 U/kg 係數推算，流速四捨五入至 0.5 mL/h，bolus 四捨五入至 500 U，上限 ACS 4,000 U（依 2025 ACC/AHA 指引）、VTE / PE 5,000 U，須再次人工核對。
+    本表依高醫 MICU/CCU protocol（ACS 治療範圍 50–75 秒，約 1.7–2.6 × control）。2025 ACC/AHA ACS 指引目標為 aPTT 60–80 秒，未提供調整表；如需改用，請依院內 protocol 修訂。
+    aPTT 有小數、落在表列兩列之間時（例如 75.5 秒），一律歸入較高的區間（較少 heparin，降低出血風險）；差距很小時請醫師評估。
+    減量超過目前流速時新流速為 0（等同停止輸注），請醫師評估。新流速超過 25 U/kg/h 或 2,000 U/h 時會提醒，請醫師／藥師確認（2,000 U/h 為高醫藥典 VTE 起始速率上限；指引與藥典都未規定調整後的速率上限）。
+    調整後 6–8 小時追蹤 aPTT（急診 q6h–q8h；原表為 q8h、連續兩次治療範圍可改 QD），並追蹤 Hb 與 platelet。（資料校對：2026-11-03）
   </div>
   <a class="back" id="back-home" href="../">← 回急診臨床小工具</a>
   <script>
@@ -255,9 +260,24 @@
 
       const delta = output.rateDeltaMlHour;
       const direction = delta > 0 ? "增加" : delta < 0 ? "減少" : "維持";
-      const changeText = delta === 0 ? "不調整" : `${direction} ${format(Math.abs(delta))} mL/h`;
+      const protocolDecrease = format(Math.abs(output.protocolDeltaMlHour));
+      // 減量超過目前流速：顯示實際減少的量，並註明依表應減多少
+      const changeText = output.clampedToZero
+        ? (output.currentRateMlHour > 0
+          ? `減少 ${format(output.currentRateMlHour)} mL/h（依表應減 ${protocolDecrease} mL/h，已降至 0）`
+          : `維持 0 mL/h（依表應減 ${protocolDecrease} mL/h）`)
+        : delta === 0 ? "不調整" : `${direction} ${format(Math.abs(delta))} mL/h`;
       actionRow("流速調整", changeText);
       actionRow("新流速", `${format(output.newRateMlHour)} mL/h（${format(output.newUnitsHour)} U/h）`, "rate-main");
+
+      // 下次 aPTT：急診 q6h–q8h；暫停者自恢復輸注起算；在治療範圍內者註明可改 QD（原表）
+      const recheckText = [
+        output.holdMinutes ? `恢復輸注後 ${output.recheckApttHours} 小時` : `${output.recheckApttHours} 小時後`,
+        output.apttStatus === "in-range" ? "（連續兩次在治療範圍可改 QD）" : "",
+      ].join("");
+      actionRow("下次 aPTT", recheckText);
+
+      if (output.reachesZero) actionRow("注意", "新流速為 0（等同停止輸注），請醫師評估", "notify-line");
 
       if (output.notifyPhysician) {
         actionRow("必要處置", "通知醫師", "notify-line");
@@ -266,6 +286,16 @@
         result.classList.add("hold");
       } else if (output.apttStatus === "in-range") {
         result.classList.add("inrange");
+      }
+
+      // 小數 aPTT 落在表列兩列之間：已依較高區間處理（較少 heparin），提醒差距小時由醫師評估
+      const bandWarning = document.querySelector("#band-warning");
+      if (output.betweenBands) {
+        bandWarning.textContent = `aPTT ${format(output.apttSeconds)} 秒介於表列「${output.lowerBandLabel}」與「${output.bandLabel}」之間，已依較高區間處理（較少 heparin，降低出血風險）。差距很小時請醫師評估。`;
+        bandWarning.classList.add("show");
+      } else {
+        bandWarning.classList.remove("show");
+        bandWarning.textContent = "";
       }
 
       // 打錯目前流速是最容易發生的輸入錯誤，超出常見劑量就出聲提醒（不擋計算）
@@ -279,6 +309,17 @@
         warning.textContent = "";
       }
 
+      // 新流速偏高：超過 25 U/kg/h 或 2,000 U/h 時提醒（不擋計算）
+      const newRateWarning = document.querySelector("#new-rate-warning");
+      const highRateText = `新流速 ${format(output.newRateMlHour)} mL/h 相當於 ${output.newUnitsPerKgHour.toFixed(1)} U/kg/h、${output.newUnitsHour.toLocaleString("en-US")} U/h，超過 25 U/kg/h 或 2,000 U/h。請醫師／藥師確認後執行。`;
+      if (output.highNewRate) {
+        newRateWarning.textContent = `請再確認：${highRateText}`;
+        newRateWarning.classList.add("show");
+      } else {
+        newRateWarning.classList.remove("show");
+        newRateWarning.textContent = "";
+      }
+
       const isListedWeight = SOURCE_WEIGHTS_KG.includes(output.weightKg);
       document.querySelector("#result-note").textContent = isListedWeight
         ? `目前 ${format(output.currentRateMlHour)} mL/h（${format(output.currentUnitsHour)} U/h）→ ${format(output.newRateMlHour)} mL/h。請人工核對藥袋濃度與醫囑。`
@@ -286,10 +327,13 @@
 
       copyText = [
         `Heparin ${output.indicationLabel} aPTT 調整`,
-        `體重 ${format(output.weightKg)} kg；aPTT ${format(output.apttSeconds)} 秒（${output.bandLabel}）`,
+        `體重 ${format(output.weightKg)} kg；aPTT ${format(output.apttSeconds)} 秒（${output.bandLabel}${output.betweenBands ? "；介於兩區間，依較高區間" : ""}）`,
         output.bolusUnits ? `Bolus ${output.bolusUnits} U` : null,
         output.holdMinutes ? `暫停 ${output.holdMinutes} 分鐘` : null,
         `流速：${format(output.currentRateMlHour)} → ${format(output.newRateMlHour)} mL/h（${changeText}）`,
+        `下次 aPTT：${recheckText}`,
+        output.reachesZero ? "新流速為 0（等同停止輸注），請醫師評估" : null,
+        output.highNewRate ? `新流速偏高：${highRateText}` : null,
         output.notifyPhysician ? "通知醫師" : null,
         "濃度 40 U/mL；須人工核對後執行",
       ].filter(Boolean).join("\n");

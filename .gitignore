@@ -2,3 +2,4 @@
 Thumbs.db
 *.log
 .wrangler/
+node_modules/

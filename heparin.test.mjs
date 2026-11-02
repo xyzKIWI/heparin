@@ -24,10 +24,11 @@ test("ACS protocol reproduces the source-table actions", () => {
   assertSubset(calculate("acs", 50, 101, 17), { holdMinutes: 60, rateDeltaMlHour: -4, newRateMlHour: 13, notifyPhysician: true });
 });
 
-test("aPTT decimal values do not fall between protocol bands", () => {
+// Kiwi 2026-11-02 決定：小數 aPTT 落在兩列之間時一律歸入較高的區間（較少 heparin，降低出血風險）
+test("aPTT decimal values between rows go to the higher band", () => {
   assert.equal(calculate("acs", 50, 75.5, 17).bandLabel, "76–85 秒");
-  assert.equal(calculate("vte", 50, 49.5, 22).bandLabel, "35–49 秒");
-  assert.equal(calculate("vte", 50, 89.5, 22).bandLabel, "80–89 秒");
+  assert.equal(calculate("vte", 50, 49.5, 22).bandLabel, "50–59 秒");
+  assert.equal(calculate("vte", 50, 89.5, 22).bandLabel, "90–120 秒");
 });
 
 test("apttStatus marks in-range only when the protocol asks for no rate change", () => {

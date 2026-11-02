@@ -1,0 +1,27 @@
+name: 驗算測試
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Playwright 只裝在 CI 暫存環境（--no-save），repo 不新增任何依賴
+      - name: 安裝 Playwright（頁面測試用）
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: 執行全部測試（計算＋頁面）
+        env:
+          REQUIRE_E2E: "1"
+        run: node --test
