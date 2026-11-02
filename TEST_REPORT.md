@@ -91,6 +91,8 @@
 | 1 | ACS 初始 bolus 上限 | 「起始劑量參考」表 ACS 列 | 60 IU/kg，**max 4,000 IU** | 原為 max 5,000 U，**已改為 max 4,000 U** | 2025 指引 Section 4.4：“Loading dose 60 IU/kg (max 4000 IU)” | 已修正，測試改為一般測試 |
 | 2 | ACS aPTT 治療範圍 | 任一 ACS 計算的治療範圍標示 | **60–80 秒** | **50–75 秒** | 2025 指引 Section 4.4：“adjusted to therapeutic aPTT range of 60-80 s” | `todo`，待 Kiwi 決定 |
 
+第 2 項已整理成構想文件 [`ACS_GUIDELINE_PROPOSAL.md`](ACS_GUIDELINE_PROPOSAL.md)（指引原文、與 MICU/CCU 表對照、三種修改方案），待 Kiwi 選擇。
+
 第 2 項說明：50–75 秒來自高醫 protocol，aPTT 秒數會因各院試劑不同而有差異。2025 指引只給目標範圍，**沒有提供 aPTT 調整 nomogram**。如果要改成 60–80 秒，ACS 的 6 個區間切點（<40、40–49、50–75、76–85、86–100、>100）都要重新訂。這一步需要 Kiwi 提供或決定新的切點，本次沒有修改。
 
 ## 三、沒有封頂保護或邊界行為可疑的地方
@@ -160,7 +162,8 @@
 
 - **需要初始注射型抗凝時，建議 LMWH 優於 UFH**（Top take-home message 第 7 點；Section 4.2.1）。理由是 LMWH 較快達到並維持治療範圍、復發 VTE 較少、HIT 較少
 - LMWH 的監測建議用 anti-Xa，肥胖、腎功能不全另有說明
-- 在我讀得到的部分，**沒有看到新的 UFH 體重劑量或 aPTT nomogram**。指引原文很長，自動擷取只讀到前半段，UFH 劑量細節沒有完整核對。Medscape 依此指引整理的治療章節，UFH 仍寫 80 U/kg（或 5,000 U）bolus、18 U/kg/h（或 1,300 U/h），和 Raschke 1993、原表一致
+- Kiwi 提供全文 PDF 後已逐頁搜尋：**全文沒有 aPTT、UFH 的 U/kg 劑量或調整表**。和 UFH 有關的只有選藥建議（Section 4.2.1 第 2、12、18、19、20 條，詳見 `ACS_GUIDELINE_PROPOSAL.md` 第 5 節）
+- UFH 劑量仍以 Raschke 1993（80 U/kg、18 U/kg/h）為準，和原表一致
 
 結論：目前沒有證據需要改 VTE / PE 的 UFH 調整表；新指引改變的是「先選 LMWH 還是 UFH」。是否在頁面加註「PE 初始治療一般建議 LMWH，UFH 用於預期再灌流、腎功能差、出血風險高需快速逆轉等情況」，請 Kiwi 決定（這句是常見臨床用法的整理，不是指引原文）。
 
