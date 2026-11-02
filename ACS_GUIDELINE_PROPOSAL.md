@@ -15,7 +15,7 @@
 
 - 指引**只給起始劑量和目標範圍**，**沒有**提供「aPTT 幾秒該加減多少」的調整表（nomogram）。調整表要由各院自訂
 - aPTT 秒數會因各院試劑而不同。高醫原表把秒數換算成倍數：50–75 秒 = 1.7–2.6 × control，60–79 秒 = 2–2.7 × control，可以推回高醫的 control 大約 29–30 秒。用同一套試劑時，**60–80 秒大約是 2.0–2.7 × control**，幾乎和高醫 VTE 表的治療範圍（60–79 秒）一樣
-- 舊版（2013 STEMI、2014 NSTE-ACS）的寫法我這次沒有核對到原文，所以不在這裡比較
+- 追加 bolus 和調整幅度一直由各院自訂。舊版 2014 AHA/ACC NSTE-ACS 指引（[doi:10.1161/CIR.0000000000000134](https://www.ahajournals.org/doi/10.1161/cir.0000000000000134)）寫明：UFH「adjusted per activated partial thromboplastin time to maintain therapeutic anticoagulation **according to the specific hospital protocol**」。2025 版只多了 60–80 秒的目標，同樣沒有給調整表。所以高醫原表 <40 秒追加 50 U/kg、+2 U/kg/h 等規則，屬於院內標準
 
 你傳來的 PDF 是 **2026 PE 指引**，不是 ACS 指引。PE 指引全文沒有 UFH 劑量、aPTT 目標或調整表（見第 5 節）。
 
