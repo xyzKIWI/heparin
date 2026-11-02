@@ -19,7 +19,7 @@
 - Bolus 四捨五入至 500 U。上限：ACS 4,000 U（依 2025 ACC/AHA ACS Guideline）；VTE / PE 5,000 U（原表）。
 - 調整後流速不低於 0 mL/h。減量超過目前流速時，畫面顯示實際減少的量並註明依表應減多少，提醒新流速為 0（等同停止輸注），請醫師評估。
 - aPTT 有小數、落在表列兩列之間時（例如 75.5 秒），一律歸入較高的區間（較少 heparin，降低出血風險），畫面會提醒差距小時由醫師評估。
-- 新流速超過 25 U/kg/h 或 2,000 U/h（50 mL/h）時提醒請醫師／藥師確認，不擋計算。指引只規定起始速率上限（ACS 1,000 U/h），沒有規定調整後的速率上限。
+- 新流速超過 25 U/kg/h 或 2,000 U/h（50 mL/h）時提醒請醫師／藥師確認，不擋計算。2,000 U/h 取自高醫藥典 VTE 起始速率上限；指引與藥典都只規定起始速率上限（ACS 1,000 U/h、VTE 2,000 U/h），沒有規定調整後的速率上限。
 - 下次 aPTT：6–8 小時後（急診 q6h–q8h；暫停者自恢復輸注起算）。原表 ICU 為 q8h，連續兩次在治療範圍可改 QD。
 - ACS 治療範圍維持高醫 MICU/CCU protocol 的 50–75 秒。2025 ACC/AHA ACS 指引目標為 aPTT 60–80 秒，但未提供調整表；如需改用，須先修訂院內 protocol（構想見 [ACS_GUIDELINE_PROPOSAL.md](ACS_GUIDELINE_PROPOSAL.md)）。
 
@@ -27,8 +27,9 @@
 
 - 高醫內科加護病房（MICU）與心臟內科加護病房（CCU）共用之「KMUH MICU Heparin Infusion Protocol」照片，由使用者提供；以照片表格逐列人工轉錄（原表 B 表標題為 ACS & Stroke，本工具只用於 ACS）
 - [2025 ACC/AHA/ACEP/NAEMSP/SCAI ACS Guideline](https://www.ahajournals.org/doi/10.1161/CIR.0000000000001309)：ACS 起始劑量與 bolus 上限 4,000 U
+- 高醫藥典（院內藥品查詢，2026-05-10 快照）：Agglutex（2AGG5）ACS 60 U/kg（max 4,000 U）+ 12 U/kg/h（max 1,000 U/h）；VTE 80 U/kg（max 10,000 U）+ 18 U/kg/h（max 2,000 U）；稀釋後 40 U/mL 室溫存放 24 小時
 - [GlobalRPH Heparin Dosing Calculator](https://globalrph.com/medcalcs/heparin-dosing-calculator-custom-options-available/)：起始體重式劑量與介面參考
-- 資料最後校對：2026-11-02
+- 資料最後校對：2026-11-03
 - 校對方式：逐列對照原始照片，並以 40／50／60／70 kg 測試案例驗證計算輸出
 
 ## 驗證

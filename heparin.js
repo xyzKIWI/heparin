@@ -5,7 +5,8 @@ export const SOURCE_WEIGHTS_KG = [40, 50, 60, 70];
 export const RECHECK_APTT_HOURS = "6–8";
 
 // 新流速偏高提醒（不擋計算，Kiwi 2026-11-02 決定）：超過 25 U/kg/h（與目前流速提醒同門檻）
-// 或超過 2,000 U/h（院內範例的起始速率上限，40 U/mL 時 = 50 mL/h）。指引沒有規定調整後的速率上限。
+// 或超過 2,000 U/h（高醫藥典 Agglutex 2AGG5 VTE「18 U/kg/h (max: 2000 U)」的起始速率上限，40 U/mL 時 = 50 mL/h）。
+// 指引與藥典都沒有規定依 aPTT 調整後的速率上限，所以只提醒、不封頂。
 export const HIGH_RATE_UNITS_PER_KG_HOUR = 25;
 export const HIGH_RATE_UNITS_HOUR = 2000;
 

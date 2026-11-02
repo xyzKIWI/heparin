@@ -494,7 +494,8 @@ describe("4. 單位換算 U/kg/h → U/h → mL/h 與進位方式", () => {
     assert.deepEqual([normal.rateDeltaMlHour, normal.protocolDeltaMlHour, normal.clampedToZero, normal.reachesZero], [-3, -3, false, false]);
   });
 
-  // 出處：Kiwi 2026-11-02 決定新流速偏高時提醒：> 25 U/kg/h 或 > 2,000 U/h（院內範例起始速率上限；指引未規定調整後上限）
+  // 出處：Kiwi 2026-11-02 決定新流速偏高時提醒：> 25 U/kg/h 或 > 2,000 U/h
+  //       （2,000 U/h = 高醫藥典 Agglutex 2AGG5 VTE「18 U/kg/h (max: 2000 U)」；指引與藥典都未規定調整後上限）
   test("新流速偏高提醒：> 25 U/kg/h 或 > 2,000 U/h，剛好等於門檻不提醒", () => {
     const cases = [
       // [適應症, kg, aPTT, 目前 mL/h, 預期新流速, 預期提醒]
@@ -616,7 +617,15 @@ describe("7. 初始 bolus 與初始速率（頁面文字對照公開指引）", 
   // 出處：[2025 指引] Section 4.4：UFH loading dose 60 IU/kg (max 4000 IU)，initial infusion 12 IU/kg/h (max 1000 IU/h)
   // 原本頁面寫 max 5,000 U，Kiwi 2026-11-02 決定依 2025 指引改為 4,000 U。
   test("ACS 初始 bolus 上限：頁面 4,000 U，與 2025 指引一致", () => {
-    assert.match(HTML, /Bolus 60 U\/kg（max 4,000 U）；12 U\/kg\/h（max 1,000 U\/h）（2025 ACC\/AHA ACS Guideline）/);
+    assert.match(HTML, /Bolus 60 U\/kg（max 4,000 U）；12 U\/kg\/h（max 1,000 U\/h）（2025 ACC\/AHA ACS Guideline；高醫藥典相同）/);
+  });
+
+  // 出處：高醫藥典 Agglutex（2AGG5）「Acute coronary syndrome: IV 60 U/kg(max:4000 U)+12 U/kg/h(max:1000 U/h)」
+  //       「稀釋後濃度為40U/mL室溫存放24小時」（Kiwi 2026-11-03 提供，藥典 2026-05-10 快照，未放入 repo）
+  test("高醫藥典：ACS 起始劑量、上限與頁面一致；40 U/mL 濃度一致", () => {
+    assert.match(HTML, /Bolus 60 U\/kg（max 4,000 U）；12 U\/kg\/h（max 1,000 U\/h）（2025 ACC\/AHA ACS Guideline；高醫藥典相同）/);
+    assert.equal(PROTOCOLS.acs.bolusCapUnits, 4000);
+    assert.equal(HEPARIN_CONCENTRATION, 40);
   });
 
   test("ACS 初始速率：頁面 12 U/kg/h（max 1,000 U/h）與 2025 指引一致", () => {

@@ -319,7 +319,7 @@ describe("頁面端對端", { skip: chromium ? false : "未安裝 playwright，�
     const footer = await page.textContent(".disc");
     assert.match(footer, /aPTT 有小數、落在表列兩列之間時（例如 75\.5 秒），一律歸入較高的區間（較少 heparin，降低出血風險）；差距很小時請醫師評估。/);
     assert.match(footer, /減量超過目前流速時新流速為 0（等同停止輸注），請醫師評估。/);
-    assert.match(footer, /新流速超過 25 U\/kg\/h 或 2,000 U\/h 時會提醒，請醫師／藥師確認（指引未規定調整後的速率上限）。/);
+    assert.match(footer, /新流速超過 25 U\/kg\/h 或 2,000 U\/h 時會提醒，請醫師／藥師確認（2,000 U\/h 為高醫藥典 VTE 起始速率上限；指引與藥典都未規定調整後的速率上限）。/);
     assert.match(footer, /調整後 6–8 小時追蹤 aPTT（急診 q6h–q8h；原表為 q8h、連續兩次治療範圍可改 QD）/);
   });
 
