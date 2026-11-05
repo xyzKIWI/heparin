@@ -81,7 +81,8 @@
   a{color:var(--teal-dark);}
   .disc{margin:14px 0 0; padding:12px 15px; font-size:.78rem; color:var(--muted); background:#fff; border:1px solid var(--line); border-radius:10px;}
   .disc b{color:#475569;}
-  .back{display:inline-block; margin:14px 0 0; color:var(--teal-dark); text-decoration:none; font-size:.83rem;}
+  .back{display:inline-flex; align-items:center; min-height:44px; margin:-12px 0 4px; color:#93c5fd; text-decoration:none; font-size:.88rem;}
+  .back:hover{color:#fff; text-decoration:underline;}
   [hidden]{display:none !important;}
   .tabs{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:0 0 14px; padding:4px; background:#e8eef3; border-radius:11px;}
   .tab{min-height:44px; border:0; border-radius:8px; background:transparent; color:var(--muted); font:inherit; font-weight:750; font-size:.9rem; line-height:1.3; cursor:pointer;}
@@ -101,6 +102,7 @@
 </head>
 <body>
 <header>
+  <a class="back" id="back-home" href="../">← 回急診臨床小工具</a>
   <h1>Heparin dose 調整</h1>
   <div class="sub">高醫 ICU protocol｜ACS・VTE / PE｜Enoxaparin</div>
 </header>
@@ -285,7 +287,6 @@
     </div>
   </div>
 
-  <a class="back" id="back-home" href="../">← 回急診臨床小工具</a>
   <script>
     // er.kiwi-ai.uk／pages.dev 的上一層就是入口；github.io 版入口在 /ed-tools/
     if (location.hostname.endsWith('github.io')) document.getElementById('back-home').href = '/ed-tools/';
